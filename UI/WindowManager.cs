@@ -4,6 +4,7 @@ using UnityEngine;
 using JetBrains.Annotations;
 using System.Linq;
 using System;
+using UnityEngine.InputSystem;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -17,13 +18,38 @@ public class WindowManager : MonoBehaviour
     [HideInInspector] public Window startingWindow;
 
     List<Window> Windows;
-
     List<Window> OpenedWindows = new List<Window>();
 
     public UIManager UIManager { get; private set; }
+    public InputActionReference pauseButton;
+    public Window pauseWindow;
+
+    private void OnEnable()
+    {
+        pauseButton.action.performed += TogglePause;
+    }
+
+
+    private void OnDisable()
+    {
+        pauseButton.action.performed -= TogglePause;    
+    }
+    private void TogglePause(InputAction.CallbackContext obj)
+    {
+        if(OpenedWindows.Count == 0)
+        {
+            OpenWindow(pauseWindow);
+        }
+        else if(OpenedWindows.Exists(item => item == pauseWindow))
+        {
+            CloseAllWindows();
+        }
+    }
 
     private void Awake()
     {
+        pauseButton.action.Enable();
+
         UIManager = GetComponent<UIManager>();
         Windows = GetComponentsInChildren<Window>(true).ToList();
 
@@ -61,6 +87,11 @@ public class WindowManager : MonoBehaviour
     internal void CloseWindow(Window window)
     {
         window.Close(this);
+    }
+
+    public void QuitGame()
+    {
+        Application.Quit();
     }
 }
 
