@@ -6,9 +6,12 @@ using UnityEngine;
 
 public static class Utilities
 {
-    public static void DelayedAction(this MonoBehaviour behavior, float time, Action onComplete, Action<float> onUpdate = null, bool timeScaled = true, Ease ease = Ease.InOutQuad)
+    public static Coroutine DelayedAction(this MonoBehaviour behavior, float time, Action onComplete, Action<float> onUpdate = null, bool timeScaled = true, Ease ease = Ease.InOutQuad)
     {
-        behavior.StartCoroutine(DelayedCoroutine(time, onComplete, onUpdate, timeScaled, ease));
+        if (behavior.enabled && behavior.gameObject.activeInHierarchy)
+            return behavior.StartCoroutine(DelayedCoroutine(time, onComplete, onUpdate, timeScaled, ease));
+        else
+            return null;
     }
 
     private static IEnumerator DelayedCoroutine(float duration, Action onComplete, Action<float> onUpdate, bool timeScaled = true, Ease ease = Ease.InOutSine)
@@ -111,5 +114,14 @@ public static class Utilities
             }
         }
         return layerNumber;
+    }
+
+    public static Vector3 Mask(this Vector3 vector, bool x, bool y, bool z, float xValue = 0, float yValue = 0, float zValue = 0)
+    {
+        if (x) vector.x = xValue;
+        if (y) vector.y = yValue;
+        if (z) vector.z = zValue;
+
+        return vector;
     }
 }

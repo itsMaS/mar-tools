@@ -18,6 +18,9 @@ public abstract class TweenCore : MonoBehaviour
     protected Vector3 originPosition;
     protected Quaternion originRotation;
     protected Vector3 originScale;
+
+    private Coroutine coroutine;
+
     private void Awake()
     {
         SetOrigin();
@@ -25,11 +28,21 @@ public abstract class TweenCore : MonoBehaviour
 
     public void PlayForward()
     {
+        ResetCoroutine();
         this.DelayedAction(duration, null, t => SetPose(t), true, ease);
     }
     public void PlayBackwards()
     {
+        ResetCoroutine();
         this.DelayedAction(duration, null, t => SetPose(1-t), true, ease);
+    }
+
+    private void ResetCoroutine()
+    {
+        if (coroutine != null)
+        {
+            StopCoroutine(coroutine);
+        }
     }
 
     public abstract void SetPose(float t);
