@@ -108,6 +108,8 @@ public static class SceneVisibilityController
     {
         var windowManager = GameObject.FindObjectOfType<WindowManager>(true);
 
+        if (!windowManager) return;
+
         if (Selection.activeGameObject != null)
         {
             var obj = Selection.activeGameObject;
