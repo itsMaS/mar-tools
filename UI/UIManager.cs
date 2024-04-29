@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -10,18 +11,27 @@ using UnityEngine.UI;
 [RequireComponent(typeof(Canvas), typeof(GraphicRaycaster))]
 public class UIManager : MonoBehaviour
 {
+    public enum NavigationType
+    {
+        Axis,
+        Pointer
+    }
+
+    public NavigationType currentNavigationType;
+
     public InputActionReference submitAction;
     public InputActionReference navigationVector;
-
-    public bool allowNoSelected = false;
+    public InputActionReference cancelAction;
 
     private GraphicRaycaster graphicRaycaster;
     private EventSystem eventSystem;
 
     Button selected;
+    Button lastNotNull;
     List<Button> MouseHoveredButtons = new List<Button>();
 
     //public string lastMap 
+    PointerEventData pointerData;
 
     private void Awake()
     {
@@ -30,6 +40,8 @@ public class UIManager : MonoBehaviour
 
         submitAction.action.Enable();
         navigationVector.action.Enable();
+        pointerData = new PointerEventData(eventSystem);
+
     }
 
     private void OnEnable()
@@ -45,8 +57,14 @@ public class UIManager : MonoBehaviour
     }
     private void Navigate(InputAction.CallbackContext obj)
     {
+        SetNavigationType(NavigationType.Axis);
+
+        if(selected == null)
+        {
+            SelectButton(lastNotNull);
+        }
+
         Vector2 aim = obj.ReadValue<Vector2>();
-        Debug.Log($"{aim}");
 
         if(aim.magnitude > 0.01f && selected)
         {
@@ -63,7 +81,18 @@ public class UIManager : MonoBehaviour
     {
         if (selected != null)
         {
-            selected.Click();
+            if(currentNavigationType == NavigationType.Pointer)
+            {
+                if(MouseHoveredButtons.Count > 0)
+                {
+                    selected.Click();
+                }
+            }
+            else
+            {
+                selected.Click();
+            }
+
         }
     }
 
@@ -71,40 +100,44 @@ public class UIManager : MonoBehaviour
     {
         MouseHoveredButtons.Clear();
 
-        PointerEventData pointerData = new PointerEventData(eventSystem)
-        {
-            position = Input.mousePosition
-        };
+        Vector2 pointerPosition = Input.mousePosition;
+        pointerData.delta = pointerData.position - pointerPosition;
+        pointerData.position = pointerPosition;
 
-        List<RaycastResult> results = new List<RaycastResult>();
-        graphicRaycaster.Raycast(pointerData, results);
-
-        foreach (RaycastResult result in results)
+        if(pointerData.delta != Vector2.zero)
         {
-            Button button = result.gameObject.GetComponent<Button>();
-            if (button != null)
-            {
-                MouseHoveredButtons.Add(button);
-            }
+            SetNavigationType(NavigationType.Pointer);
         }
 
-        SelectButton(MouseHoveredButtons.FirstOrDefault());
 
-        Button newSelected = MouseHoveredButtons.FirstOrDefault();
+        if(currentNavigationType == NavigationType.Pointer)
+        {
+            List<RaycastResult> results = new List<RaycastResult>();
+            graphicRaycaster.Raycast(pointerData, results);
+
+            foreach (RaycastResult result in results)
+            {
+                Button button = result.gameObject.GetComponent<Button>();
+                if (button != null)
+                {
+                    MouseHoveredButtons.Add(button);
+                }
+            }
+            SelectButton(MouseHoveredButtons.FirstOrDefault());
+        }
     }
 
     public void SelectButton(Button button)
     {
         if (selected == button) return;
 
-        if(button != null || allowNoSelected)
-        {
-            DeselectButton(selected);
-        }
+        DeselectButton(selected);
 
+        selected = button;
+        
         if(button != null)
         {
-            selected = button;
+            lastNotNull = button;
             selected.Select();
         }
     }
@@ -115,6 +148,14 @@ public class UIManager : MonoBehaviour
         {
             button.Deselect();
             selected = null;
+        }
+    }
+
+    private void SetNavigationType(NavigationType type)
+    {
+        if (currentNavigationType != type)
+        {
+            currentNavigationType = type;
         }
     }
 }
