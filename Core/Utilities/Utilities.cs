@@ -92,4 +92,24 @@ public static class Utilities
     {
         return Mathf.Sin(t * Mathf.PI);
     }
+
+    public static float Remap(float value, float from1, float to1, float from2, float to2)
+    {
+        return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
+    }
+
+    public static int LayerMaskToLayer(LayerMask layerMask)
+    {
+        int layerNumber = -1;
+        int mask = layerMask.value;
+        for (int i = 0; i < 32; i++)
+        {
+            if ((mask & (1 << i)) != 0)
+            {
+                layerNumber = i;
+                break;
+            }
+        }
+        return layerNumber;
+    }
 }
