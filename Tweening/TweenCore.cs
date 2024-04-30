@@ -10,26 +10,22 @@ using UnityEditor;
 
 public abstract class TweenCore : MonoBehaviour
 {
+    public bool looping = false;
+    public bool playOnEnable = false;
+
     public Utilities.Ease ease = Utilities.Ease.InOutQuad;
     public bool local = true;
-    public bool relative = true;
     public float duration = 1f;
-
-    protected Vector3 originPosition;
-    protected Quaternion originRotation;
-    protected Vector3 originScale;
-
     private Coroutine coroutine;
 
-    private void Awake()
+    private void OnEnable()
     {
-        SetOrigin();
+        if (playOnEnable) PlayForward();
     }
-
     public void PlayForward()
     {
         ResetCoroutine();
-        this.DelayedAction(duration, null, t => SetPose(t), true, ease);
+        this.DelayedAction(duration, () => { if (looping) PlayForward(); }, t => SetPose(t), true, ease);
     }
     public void PlayBackwards()
     {
@@ -46,12 +42,6 @@ public abstract class TweenCore : MonoBehaviour
     }
 
     public abstract void SetPose(float t);
-    public virtual void SetOrigin()
-    {
-        originPosition = transform.localPosition;
-        originRotation = transform.localRotation;
-        originScale = transform.localScale;
-    }
 }
 
 #if UNITY_EDITOR
@@ -74,11 +64,8 @@ public class TweenCoreEditor : Editor
 
             if(!playing)
             {
-                if(newPose != pose)
-                {
-                    SetPose(script, pose);
-                    pose = newPose;
-                }
+                SetPose(script, pose);
+                pose = newPose;
             }
 
             if (!playing && GUILayout.Button("Play Tween"))
@@ -90,11 +77,6 @@ public class TweenCoreEditor : Editor
             if (playing && GUILayout.Button("Stop"))
             {
                 playing = false;
-            }
-
-            if(!playing && GUILayout.Button("Set Origin"))
-            {
-                script.SetOrigin();
             }
         }
     }

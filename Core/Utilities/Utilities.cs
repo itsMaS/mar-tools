@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public static class Utilities
@@ -59,6 +60,7 @@ public static class Utilities
         InOutQuad,
         OutBack,
         Pulse,
+        OutBounce,
     }
 
     public static Dictionary<Ease, Func<float, float>> Eases = new Dictionary<Ease, Func<float, float>>
@@ -68,6 +70,7 @@ public static class Utilities
         {Ease.InOutQuad, t1 => InOutQuad(t1)},
         {Ease.OutBack, t1 => OutBack(t1)},
         {Ease.Pulse, t1 => Pulse(t1)},
+        {Ease.OutBounce, t1 => OutBounce(t1)},
     };
 
     public static float Linear(float t)
@@ -115,13 +118,32 @@ public static class Utilities
         }
         return layerNumber;
     }
-
-    public static Vector3 Mask(this Vector3 vector, bool x, bool y, bool z, float xValue = 0, float yValue = 0, float zValue = 0)
+    public static float OutBounce(float t)
     {
-        if (x) vector.x = xValue;
-        if (y) vector.y = yValue;
-        if (z) vector.z = zValue;
+        if (t < 1 / 2.75f)
+        {
+            return 7.5625f * t * t;
+        }
+        else if (t < 2 / 2.75f)
+        {
+            t -= 1.5f / 2.75f;
+            return 7.5625f * t * t + 0.75f;
+        }
+        else if (t < 2.5 / 2.75f)
+        {
+            t -= 2.25f / 2.75f;
+            return 7.5625f * t * t + 0.9375f;
+        }
+        else
+        {
+            t -= 2.625f / 2.75f;
+            return 7.5625f * t * t + 0.984375f;
+        }
+    }
 
+    public static Vector3 MaskY(this Vector3 vector, float yValue = 0)
+    {
+        vector.y = yValue;
         return vector;
     }
 }
