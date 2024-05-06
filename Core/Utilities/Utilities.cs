@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public static class Utilities
@@ -145,5 +144,82 @@ public static class Utilities
     {
         vector.y = yValue;
         return vector;
+    }
+
+    public static Vector3 Round(this Vector3 vector, float gridScale)
+    {
+        vector /= gridScale;
+        vector = new Vector3(Mathf.RoundToInt(vector.x), Mathf.RoundToInt(vector.y), Mathf.RoundToInt(vector.z));
+        vector *= gridScale;
+
+        return vector;
+    }
+
+    public static float Round(this float value, float gridSize)
+    {
+        value /= gridSize;
+        value = Mathf.RoundToInt(value);
+        value *= gridSize;
+
+        return value;
+    }
+
+    public static List<Vector3> GetPointsInsideShape(List<Vector3> vertices, int pointCount)
+    {
+        List<Vector3> pointsInside = new List<Vector3>();
+        Bounds bounds = CalculateBounds(vertices);
+        int safetyNet = 0;
+
+        while (pointsInside.Count < pointCount)
+        {
+            Vector3 randomPoint = new Vector3(
+                UnityEngine.Random.Range(bounds.min.x, bounds.max.x),
+                0, // All points are at y = 0 as it's the XZ plane
+                UnityEngine.Random.Range(bounds.min.z, bounds.max.z));
+
+            if (IsPointInside(vertices, randomPoint))
+            {
+                pointsInside.Add(randomPoint);
+            }
+
+            safetyNet++;
+            if (safetyNet > 10000) // Prevent infinite loop
+            {
+                Debug.LogWarning("Too many attempts to find points inside the shape.");
+                break;
+            }
+        }
+
+        return pointsInside;
+    }
+
+    private static bool IsPointInside(List<Vector3> vertices, Vector3 point)
+    {
+        bool inside = false;
+        int j = vertices.Count - 1;
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            if (((vertices[i].z > point.z) != (vertices[j].z > point.z)) &&
+                (point.x < (vertices[j].x - vertices[i].x) * (point.z - vertices[i].z) / (vertices[j].z - vertices[i].z) + vertices[i].x))
+            {
+                inside = !inside;
+            }
+            j = i;
+        }
+        return inside;
+    }
+
+    private static Bounds CalculateBounds(List<Vector3> vertices)
+    {
+        Vector3 min = vertices[0];
+        Vector3 max = vertices[0];
+        foreach (Vector3 vertex in vertices)
+        {
+            min.x = Mathf.Min(min.x, vertex.x);
+            min.z = Mathf.Min(min.z, vertex.z);
+            max.x = Mathf.Max(max.x, vertex.x);
+            max.z = Mathf.Max(max.z, vertex.z);
+        }
+        return new Bounds((max + min) / 2, max - min);
     }
 }
