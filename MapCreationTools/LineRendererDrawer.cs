@@ -1,10 +1,6 @@
 namespace MarTools
 {
     using UnityEngine;
-    using System.Collections.Generic;
-    using MalbersAnimations.Reactions;
-    using System.Linq;
-    using JetBrains.Annotations;
     #if UNITY_EDITOR
     using UnityEditor;
     #endif

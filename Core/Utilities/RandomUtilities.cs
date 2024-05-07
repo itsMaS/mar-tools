@@ -19,7 +19,7 @@ namespace MarTools
         public class WeightedOption<T>
         {
             public T element;
-            public float weight;
+            public float weight = 1;
     
             public WeightedOption(T element, float weight)
             {

@@ -1,13 +1,17 @@
 namespace MarTools
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using Unity.VisualScripting;
     using UnityEditor;
     using UnityEngine;
-    
+    using UnityEngine.Events;
+
     public class LineBehavior : MonoBehaviour
     {
+        public UnityEvent OnModified;
+
         [SerializeField]
         public Color lineColor = Color.white;
         [SerializeField]
@@ -16,33 +20,21 @@ namespace MarTools
         public bool looping = false;
         [SerializeField]
         public List<Vector3> points = new List<Vector3>();
-    
-        public List<Vector3> worldPoints
-        {
-            get
-            {
-                return points.ConvertAll(p => transform.TransformPoint(p));
-            }
-        }
-    
-        public List<Vector3> smoothWorldPoints
-        {
-            get
-            {
-                return GenerateSmoothPath(worldPoints, smoothing);
-            }
-        }
-    
+        public List<Vector3> worldPoints { get { return points.ConvertAll(p => transform.TransformPoint(p)); } }
+        public List<Vector3> smoothWorldPoints { get { return GenerateSmoothPath(worldPoints, smoothing); } }
         public List<Vector3> GetPointsInsideShape(int pointCount, int seed)
         {
             return Utilities.GetPointsInsideShape(worldPoints, pointCount, seed);
         }
-    
         public float CalculateLength()
         {
             return smoothWorldPoints.CalculateLength();
         }
-    
+
+        public (List<Vector3>, List<Vector3>) GetPointAlongPath(int points)
+        {
+            return Utilities.GetPositionsAndNormals(smoothWorldPoints, points);
+        }
     
         private void OnDrawGizmos()
         {
@@ -61,7 +53,7 @@ namespace MarTools
             }
         }
     
-        public List<Vector3> GenerateSmoothPath(List<Vector3> cpoints, int smoothness)
+        private List<Vector3> GenerateSmoothPath(List<Vector3> cpoints, int smoothness)
         {
             if (cpoints.Count == 0) return cpoints;
     
@@ -114,6 +106,11 @@ namespace MarTools
                 }
             }
             return smoothPoints;
+        }
+
+        internal void Modified()
+        {
+            OnModified.Invoke();
         }
     }
     
@@ -284,10 +281,12 @@ namespace MarTools
                     {
                         lineDrawer.points.Insert(insertIndex, lineDrawer.transform.InverseTransformPoint(cursorWorldPosition));
                         Event.current.Use();
+                        lineDrawer.Modified();
                     }
                     else if (Event.current.button == 1)
                     {
                         lineDrawer.points.RemoveAt(removeIndex);
+                        lineDrawer.Modified();
                     }
                 }
     
@@ -320,9 +319,10 @@ namespace MarTools
     
                             newPointLocal = newPointLocal.Round(gridSize);
                         }
+
+                        lineDrawer.points[i] = newPointLocal;
+                        lineDrawer.Modified();
                     }
-    
-                    lineDrawer.points[i] = newPointLocal;
                 }
             }
         }

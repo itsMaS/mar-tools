@@ -8,7 +8,7 @@ namespace MarTools
     #endif
     
     [RequireComponent(typeof(LineBehavior))]
-    public class PopulateLineShape : MonoBehaviour
+    public class FillLinePolygon : MonoBehaviour
     {
         [System.Serializable]
         public class Prefab
@@ -64,14 +64,14 @@ namespace MarTools
     }
     
     #if UNITY_EDITOR
-    [CustomEditor(typeof(PopulateLineShape))]
+    [CustomEditor(typeof(FillLinePolygon))]
     public class PopulateLineShapeEditor : Editor
     {
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
     
-            PopulateLineShape line = (PopulateLineShape)target;
+            FillLinePolygon line = (FillLinePolygon)target;
     
             if(line.Prefabs.Count > 0 && GUILayout.Button("Populate"))
             {
@@ -89,7 +89,7 @@ namespace MarTools
     
         private void OnSceneGUI()
         {
-            PopulateLineShape line = (PopulateLineShape)target;
+            FillLinePolygon line = (FillLinePolygon)target;
             foreach (var position in line.CurrentPositions)
             {
                 Handles.DrawWireDisc(position,Vector3.up, 1f);
