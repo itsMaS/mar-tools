@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-
+    
 public static class Utilities
 {
     public static Coroutine DelayedAction(this MonoBehaviour behavior, float time, Action onComplete, Action<float> onUpdate = null, bool timeScaled = true, Ease ease = Ease.InOutQuad)
@@ -13,7 +13,7 @@ public static class Utilities
         else
             return null;
     }
-
+    
     private static IEnumerator DelayedCoroutine(float duration, Action onComplete, Action<float> onUpdate, bool timeScaled = true, Ease ease = Ease.InOutSine)
     {
         float elapsed = 0;
@@ -27,31 +27,31 @@ public static class Utilities
         }
         onComplete?.Invoke();
     }
-
+    
     public static T FindClosest<T>(this IEnumerable<T> collection, Vector3 target, Func<T, Vector2> PositionFunction, out float closestDistance)
     {
         closestDistance = float.MaxValue;
         T closestElement = collection.First();
-
+    
         foreach (var item in collection)
         {
             float distance = Vector3.Distance(PositionFunction.Invoke(item), target);
-
+    
             if (distance < closestDistance)
             {
                 closestDistance = distance;
                 closestElement = item;
             }
         }
-
+    
         return closestElement;
     }
-
+    
     public static Vector2 FindClosest(this IEnumerable<Vector2> collection, Vector2 target, out float closestDistance)
     {
         return FindClosest<Vector2>(collection, target, item => item, out closestDistance);
     }
-
+    
     public enum Ease
     {
         Linear,
@@ -61,7 +61,7 @@ public static class Utilities
         Pulse,
         OutBounce,
     }
-
+    
     public static Dictionary<Ease, Func<float, float>> Eases = new Dictionary<Ease, Func<float, float>>
     {
         {Ease.Linear, t1 => Linear(t1)},
@@ -71,7 +71,7 @@ public static class Utilities
         {Ease.Pulse, t1 => Pulse(t1)},
         {Ease.OutBounce, t1 => OutBounce(t1)},
     };
-
+    
     public static float Linear(float t)
     {
         return t;
@@ -92,17 +92,17 @@ public static class Utilities
         float s = 1.70158f;  // Overshoot amount, can be adjusted
         return ((t -= 1) * t * ((s + 1) * t + s) + 1);
     }
-
+    
     public static float Pulse(float t)
     {
         return Mathf.Sin(t * Mathf.PI);
     }
-
+    
     public static float Remap(float value, float from1, float to1, float from2, float to2)
     {
         return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
     }
-
+    
     public static int LayerMaskToLayer(LayerMask layerMask)
     {
         int layerNumber = -1;
@@ -139,51 +139,51 @@ public static class Utilities
             return 7.5625f * t * t + 0.984375f;
         }
     }
-
+    
     public static Vector3 MaskY(this Vector3 vector, float yValue = 0)
     {
         vector.y = yValue;
         return vector;
     }
-
+    
     public static Vector3 Round(this Vector3 vector, float gridScale)
     {
         vector /= gridScale;
         vector = new Vector3(Mathf.RoundToInt(vector.x), Mathf.RoundToInt(vector.y), Mathf.RoundToInt(vector.z));
         vector *= gridScale;
-
+    
         return vector;
     }
-
+    
     public static float Round(this float value, float gridSize)
     {
         value /= gridSize;
         value = Mathf.RoundToInt(value);
         value *= gridSize;
-
+    
         return value;
     }
-
+    
     public static List<Vector3> GetPointsInsideShape(List<Vector3> vertices, int pointCount, int seed)
     {
         List<Vector3> pointsInside = new List<Vector3>();
         Bounds bounds = CalculateBounds(vertices);
         int safetyNet = 0;
-
+    
         UnityEngine.Random.InitState(seed);
-
+    
         while (pointsInside.Count < pointCount)
         {
             Vector3 randomPoint = new Vector3(
                 UnityEngine.Random.Range(bounds.min.x, bounds.max.x),
                 0, // All points are at y = 0 as it's the XZ plane
                 UnityEngine.Random.Range(bounds.min.z, bounds.max.z));
-
+    
             if (IsPointInside(vertices, randomPoint))
             {
                 pointsInside.Add(randomPoint);
             }
-
+    
             safetyNet++;
             if (safetyNet > 10000) // Prevent infinite loop
             {
@@ -191,10 +191,10 @@ public static class Utilities
                 break;
             }
         }
-
+    
         return pointsInside;
     }
-
+    
     private static bool IsPointInside(List<Vector3> vertices, Vector3 point)
     {
         bool inside = false;
@@ -210,7 +210,7 @@ public static class Utilities
         }
         return inside;
     }
-
+    
     private static Bounds CalculateBounds(List<Vector3> vertices)
     {
         Vector3 min = vertices[0];
@@ -224,12 +224,12 @@ public static class Utilities
         }
         return new Bounds((max + min) / 2, max - min);
     }
-
+    
     public static float CalculateLength(this IEnumerable<Vector3> points)
     {
         float distance = 0;
         if (points.Count() == 0) return distance;
-
+    
         Vector3 last = points.First();
         foreach (Vector3 point in points)
         {
@@ -237,7 +237,7 @@ public static class Utilities
             distance += dis;
             last = point;
         }
-
+    
         return distance;
     }
 }
