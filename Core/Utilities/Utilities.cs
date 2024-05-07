@@ -164,11 +164,13 @@ public static class Utilities
         return value;
     }
 
-    public static List<Vector3> GetPointsInsideShape(List<Vector3> vertices, int pointCount)
+    public static List<Vector3> GetPointsInsideShape(List<Vector3> vertices, int pointCount, int seed)
     {
         List<Vector3> pointsInside = new List<Vector3>();
         Bounds bounds = CalculateBounds(vertices);
         int safetyNet = 0;
+
+        UnityEngine.Random.InitState(seed);
 
         while (pointsInside.Count < pointCount)
         {

@@ -37,9 +37,9 @@ public class LineBehavior : MonoBehaviour
         }
     }
 
-    public List<Vector3> GetPointsInsideShape(int pointCount)
+    public List<Vector3> GetPointsInsideShape(int pointCount, int seed)
     {
-        return Utilities.GetPointsInsideShape(worldPoints, pointCount);
+        return Utilities.GetPointsInsideShape(worldPoints, pointCount, seed);
     }
 
 
@@ -223,7 +223,12 @@ public class LineDrawerEditor : Editor
 
         AddPoints();
 
+        var localPoints = lineDrawer.worldPoints;
+        Color col = lineDrawer.lineColor;
+        col.a = 1;
+        Handles.color = col;
 
+        Handles.DrawAAPolyLine(2, localPoints.ToArray());
     }
 
     private void UpdateEditor()

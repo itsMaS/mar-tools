@@ -26,12 +26,18 @@ public class MapComment : MonoBehaviour
     private void DrawText(string text, Vector3 position)
     {
         GUIStyle style = new GUIStyle();
-        float scale = HandleUtility.GetHandleSize(position);
-        style.fontSize = Mathf.RoundToInt(size / scale);
-        style.alignment = TextAnchor.MiddleCenter;
-        style.normal.textColor = Color.white;
 
-        Handles.Label(position, text, style);
+        float scale = HandleUtility.GetHandleSize(position);
+        int fontSize = Mathf.RoundToInt(size / scale);
+
+        if(fontSize > 1 && fontSize < 1000)
+        {
+            style.fontSize = fontSize;
+            style.alignment = TextAnchor.MiddleCenter;
+            style.normal.textColor = Color.white;
+
+            Handles.Label(position, text, style);
+        }
     }
 #endif
 }
