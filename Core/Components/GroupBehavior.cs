@@ -1,95 +1,99 @@
-using System.Collections.Generic;
-using UnityEngine;
-using System.Linq;
-using UnityEngine.UIElements;
-using UnityEngine.Events;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
-public class GroupBehavior : MonoBehaviour
+namespace MarTools
 {
-    public UnityEvent<GroupBehavior> OnAnyOtherActivated;
-    [HideInInspector] public string groupID = "";
-
-    public void Activate()
+    using System.Collections.Generic;
+    using UnityEngine;
+    using System.Linq;
+    using UnityEngine.UIElements;
+    using UnityEngine.Events;
+    #if UNITY_EDITOR
+    using UnityEditor;
+    #endif
+    public class GroupBehavior : MonoBehaviour
     {
-        var groupObjects = FindObjectsOfType<GroupBehavior>().Where(item => item.groupID == groupID);
-        foreach (var groupObject in groupObjects) 
+        public UnityEvent<GroupBehavior> OnAnyOtherActivated;
+        [HideInInspector] public string groupID = "";
+    
+        public void Activate()
         {
-            if(groupObject != this)
+            var groupObjects = FindObjectsOfType<GroupBehavior>().Where(item => item.groupID == groupID);
+            foreach (var groupObject in groupObjects) 
             {
-                groupObject.ActivatedByOther(this);
+                if(groupObject != this)
+                {
+                    groupObject.ActivatedByOther(this);
+                }
             }
         }
-    }
-
-    private void ActivatedByOther(GroupBehavior origin)
-    {
-        OnAnyOtherActivated.Invoke(origin);
-    }
-}
-
-#if UNITY_EDITOR
-[CustomEditor(typeof(GroupBehavior))]
-public class GroupBehaviorEditor : Editor
-{
-    int selection = 0;
-    string newName = string.Empty;
-
-    private List<string> GroupIDs
-    {
-        get
+    
+        private void ActivatedByOther(GroupBehavior origin)
         {
-            var list = FindObjectsOfType<GroupBehavior>()
-           .Where(g => !string.IsNullOrEmpty(g.groupID))
-           .Select(g => g.groupID)
-           .Distinct()
-           .ToList();
-            list.Insert(0, "Create new group...");
-            return list;
+            OnAnyOtherActivated.Invoke(origin);
         }
     }
-
-    public override VisualElement CreateInspectorGUI()
+    
+    #if UNITY_EDITOR
+    [CustomEditor(typeof(GroupBehavior))]
+    public class GroupBehaviorEditor : Editor
     {
-        GroupBehavior script = (GroupBehavior)target;
-        selection = GroupIDs.IndexOf(script.groupID);
-        return base.CreateInspectorGUI();
-    }
-
-    public override void OnInspectorGUI()
-    {
-        DrawDefaultInspector();
-        GroupBehavior script = (GroupBehavior)target;
-
-        var groups = GroupIDs;
-
-        if (selection > 0)
+        int selection = 0;
+        string newName = string.Empty;
+    
+        private List<string> GroupIDs
         {
+            get
+            {
+                var list = FindObjectsOfType<GroupBehavior>()
+               .Where(g => !string.IsNullOrEmpty(g.groupID))
+               .Select(g => g.groupID)
+               .Distinct()
+               .ToList();
+                list.Insert(0, "Create new group...");
+                return list;
+            }
+        }
+    
+        public override VisualElement CreateInspectorGUI()
+        {
+            GroupBehavior script = (GroupBehavior)target;
             selection = GroupIDs.IndexOf(script.groupID);
+            return base.CreateInspectorGUI();
         }
-        selection = EditorGUILayout.Popup("Select Group", selection, groups.ToArray());
-
-        if (selection <= 0)
+    
+        public override void OnInspectorGUI()
         {
-            newName = EditorGUILayout.TextField("New group name", newName);
-            if(GUILayout.Button("Create"))
+            DrawDefaultInspector();
+            GroupBehavior script = (GroupBehavior)target;
+    
+            var groups = GroupIDs;
+    
+            if (selection > 0)
             {
-                script.groupID = newName;
-                selection = GroupIDs.IndexOf(newName);
+                selection = GroupIDs.IndexOf(script.groupID);
             }
-        }
-        else
-        {
-            script.groupID = GroupIDs[selection];
-
-            var objects = FindObjectsOfType<GroupBehavior>().ToList().Where(item => item.groupID == script.groupID).ToList().ConvertAll(item => item.gameObject);
-            if (objects.Count > 1 && GUILayout.Button($"Select All [{objects.Count}]"))
+            selection = EditorGUILayout.Popup("Select Group", selection, groups.ToArray());
+    
+            if (selection <= 0)
             {
-                Selection.objects = objects.ToArray();
+                newName = EditorGUILayout.TextField("New group name", newName);
+                if(GUILayout.Button("Create"))
+                {
+                    script.groupID = newName;
+                    selection = GroupIDs.IndexOf(newName);
+                }
+            }
+            else
+            {
+                script.groupID = GroupIDs[selection];
+    
+                var objects = FindObjectsOfType<GroupBehavior>().ToList().Where(item => item.groupID == script.groupID).ToList().ConvertAll(item => item.gameObject);
+                if (objects.Count > 1 && GUILayout.Button($"Select All [{objects.Count}]"))
+                {
+                    Selection.objects = objects.ToArray();
+                }
             }
         }
     }
+    
+    #endif
+    
 }
-
-#endif

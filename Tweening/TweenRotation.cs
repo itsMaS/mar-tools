@@ -1,21 +1,25 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public class TweenRotation : TweenCore
+namespace MarTools
 {
-    public Vector3 from;
-    public Vector3 to;
-
-    public override void SetPose(float t)
+    using System.Collections;
+    using System.Collections.Generic;
+    using UnityEngine;
+    
+    public class TweenRotation : TweenCore
     {
-        if(local)
+        public Vector3 from;
+        public Vector3 to;
+    
+        public override void SetPose(float t)
         {
-            transform.localRotation = Quaternion.Euler(Vector3.LerpUnclamped(from, to, t));
-        }
-        else
-        {
-            transform.rotation = Quaternion.Euler(Vector3.LerpUnclamped(from, to, t));
+            if(local)
+            {
+                transform.localRotation = Quaternion.Euler(Vector3.LerpUnclamped(from, to, t));
+            }
+            else
+            {
+                transform.rotation = Quaternion.Euler(Vector3.LerpUnclamped(from, to, t));
+            }
         }
     }
+    
 }

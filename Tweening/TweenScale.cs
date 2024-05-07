@@ -1,14 +1,18 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public class TweenScale : TweenCore
+namespace MarTools
 {
-    public float startingScale = 1;
-    public float endingScale = 1.1f;
-
-    public override void SetPose(float t)
+    using System.Collections;
+    using System.Collections.Generic;
+    using UnityEngine;
+    
+    public class TweenScale : TweenCore
     {
-        transform.localScale = Vector3.one * Mathf.Lerp(startingScale, endingScale, t);
+        public float startingScale = 1;
+        public float endingScale = 1.1f;
+    
+        public override void SetPose(float t)
+        {
+            transform.localScale = Vector3.one * Mathf.Lerp(startingScale, endingScale, t);
+        }
     }
+    
 }

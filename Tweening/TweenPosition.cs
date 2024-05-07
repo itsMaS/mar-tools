@@ -1,20 +1,24 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public class TweenPosition : TweenCore
+namespace MarTools
 {
-    public Vector3 from;
-    public Vector3 to;
-    public override void SetPose(float t)
+    using System.Collections;
+    using System.Collections.Generic;
+    using UnityEngine;
+    
+    public class TweenPosition : TweenCore
     {
-        if(local)
+        public Vector3 from;
+        public Vector3 to;
+        public override void SetPose(float t)
         {
-            transform.localPosition = Vector3.LerpUnclamped(from, to, t);
-        }
-        else
-        {
-            transform.position = Vector3.LerpUnclamped(from, to, t);
+            if(local)
+            {
+                transform.localPosition = Vector3.LerpUnclamped(from, to, t);
+            }
+            else
+            {
+                transform.position = Vector3.LerpUnclamped(from, to, t);
+            }
         }
     }
+    
 }
