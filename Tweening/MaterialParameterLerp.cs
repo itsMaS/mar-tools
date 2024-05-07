@@ -3,38 +3,27 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Renderer))]
-public class MaterialParameterLerp : MonoBehaviour
+public class MaterialParameterLerp : TweenCore
 {
-    public bool activateOnEnable;
-
-    public float duration = 0.5f;
     public string materialID;
     public int materialIndex = 0;
 
     public float from = 0;
     public float to = 1;
 
-    public bool relative = true;
+    Material mat;
 
-    private void OnEnable()
+    public override void SetPose(float t)
     {
-        if(activateOnEnable)
+        if (!Application.isPlaying) return;
+
+        if(!mat)
         {
-            PlayForwards();
+            var renderer = GetComponent<Renderer>();
+
+            mat = renderer.materials[materialIndex];
         }
-    }
 
-    public void PlayForwards()
-    {
-        Material mat = GetComponent<Renderer>().materials[materialIndex];
-
-        float origin = relative ? mat.GetFloat(materialID) : from;
-        this.DelayedAction(duration, null, value => mat.SetFloat(materialID, Mathf.Lerp(origin, to, value)));
-    }
-    public void PlayBackwards()
-    {
-        Material mat = GetComponent<Renderer>().materials[materialIndex];
-        float origin = relative ? mat.GetFloat(materialID) : to;
-        this.DelayedAction(duration, null, value => mat.SetFloat(materialID, Mathf.Lerp(origin, from, value)));
+        mat.SetFloat(materialID, Mathf.Lerp(from,to, t));
     }
 }

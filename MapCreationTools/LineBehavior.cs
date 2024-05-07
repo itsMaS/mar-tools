@@ -23,7 +23,7 @@ public class LineBehavior : MonoBehaviour
         }
     }
 
-    public List<Vector3> smoothPoints
+    public List<Vector3> smoothWorldPoints
     {
         get
         {
@@ -36,11 +36,16 @@ public class LineBehavior : MonoBehaviour
         return Utilities.GetPointsInsideShape(worldPoints, pointCount, seed);
     }
 
+    public float CalculateLength()
+    {
+        return smoothWorldPoints.CalculateLength();
+    }
+
 
     private void OnDrawGizmos()
     {
         Gizmos.color = lineColor;
-        List<Vector3> points = smoothPoints;
+        List<Vector3> points = smoothWorldPoints;
 
         //Handles.color = lineColor;
         //Handles.DrawAAPolyLine(lineWidth, points.ToArray());
@@ -52,21 +57,6 @@ public class LineBehavior : MonoBehaviour
 
             Gizmos.DrawLine(current, previous);
         }
-    }
-
-    public float GetLength()
-    {
-        List<Vector3> points = smoothPoints;
-
-        float length = 0;
-        for (int i = 1; i < points.Count; i++)
-        {
-            Vector3 current = points[i];
-            Vector3 previous = points[i - 1];
-
-            length += Vector3.Distance(current, previous);
-        }
-        return length;
     }
 
     public List<Vector3> GenerateSmoothPath(List<Vector3> cpoints, int smoothness)
@@ -108,7 +98,7 @@ public class LineBehavior : MonoBehaviour
             Vector3 p2 = controlPoints[index + 2];
             Vector3 p3 = controlPoints[index + 3];
 
-            for (int i = 0; i <= smoothness; i++)
+            for (int i = 1; i <= smoothness; i++)
             {
                 float t = i / (float)smoothness;
                 float t2 = t * t;
@@ -318,6 +308,8 @@ public class LineDrawerEditor : Editor
                 Handles.color = Color.blue;
                 Vector3 newPoint = Handles.FreeMoveHandle(oldPoint, HandleUtility.GetHandleSize(oldPoint) * 0.1f, Vector3.one, Handles.RectangleHandleCap);
                 Vector3 newPointLocal = lineDrawer.transform.InverseTransformPoint(newPoint);
+
+                newPointLocal = newPointLocal.MaskY(0);
 
                 if (EditorGUI.EndChangeCheck())
                 {

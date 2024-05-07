@@ -224,4 +224,20 @@ public static class Utilities
         }
         return new Bounds((max + min) / 2, max - min);
     }
+
+    public static float CalculateLength(this IEnumerable<Vector3> points)
+    {
+        float distance = 0;
+        if (points.Count() == 0) return distance;
+
+        Vector3 last = points.First();
+        foreach (Vector3 point in points)
+        {
+            float dis = Vector3.Distance(last, point);
+            distance += dis;
+            last = point;
+        }
+
+        return distance;
+    }
 }

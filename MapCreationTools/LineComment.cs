@@ -15,7 +15,7 @@ public class LineComment : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        float distance = line.GetLength();
+        float distance = line.CalculateLength();
         float time = distance / speed;
 
         string text = $"{distance:.00}m\n{time:.00}s to pass at {speed:.00}m/s";

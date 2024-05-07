@@ -18,6 +18,8 @@ public class MapComment : MonoBehaviour
     [SerializeField, TextArea] string description;
     [SerializeField] float size = 10;
 
+    public Vector2 fontSizeBounds = new Vector2(1, 30);
+
     private void OnDrawGizmos()
     {
         DrawText($"<b>{gameObject.name.ToUpper()}</b>\n{description}", transform.position);
@@ -30,11 +32,15 @@ public class MapComment : MonoBehaviour
         float scale = HandleUtility.GetHandleSize(position);
         int fontSize = Mathf.RoundToInt(size / scale);
 
-        if(fontSize > 1 && fontSize < 1000)
+        float distanceToEdge = Mathf.Min(Mathf.Abs(fontSizeBounds.x-fontSize), Mathf.Abs(fontSizeBounds.y-fontSize));
+        Color color = Color.white;
+        color.a = Mathf.InverseLerp(20, 10, distanceToEdge);
+
+        if(fontSize > fontSizeBounds.x && fontSize < fontSizeBounds.y)
         {
             style.fontSize = fontSize;
             style.alignment = TextAnchor.MiddleCenter;
-            style.normal.textColor = Color.white;
+            style.normal.textColor = color;
 
             Handles.Label(position, text, style);
         }
