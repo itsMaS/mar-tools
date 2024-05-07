@@ -7,17 +7,11 @@ using UnityEngine;
 public class LineBehavior : MonoBehaviour
 {
     [SerializeField]
-    public float lineWidth = 1;
-
-    [SerializeField]
     public Color lineColor = Color.white;
-
     [SerializeField]
     public int smoothing = 5;
-
     [SerializeField]
     public bool looping = false;
-
     [SerializeField]
     public List<Vector3> points = new List<Vector3>();
 
@@ -154,13 +148,9 @@ public class LineDrawerEditor : Editor
 
     public override void OnInspectorGUI()
     {
-        GUILayout.Space(10);
-        EditorGUILayout.LabelField("Point Settings", EditorStyles.boldLabel);
-        lineDrawer.lineWidth = EditorGUILayout.FloatField("Width", lineDrawer.lineWidth);
         lineDrawer.lineColor = EditorGUILayout.ColorField("Color", lineDrawer.lineColor);
         lineDrawer.smoothing = EditorGUILayout.IntSlider("Smoothing", lineDrawer.smoothing, 0, 10);
         lineDrawer.looping = EditorGUILayout.Toggle("Looping", lineDrawer.looping);
-
         gridSize = EditorGUILayout.FloatField("Grid size", gridSize);
 
         if(GUILayout.Button("Clear Points"))
