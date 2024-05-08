@@ -117,6 +117,7 @@ public class AnimationUtilities : Editor
             foreach (ModelImporterClipAnimation clip in clips)
             {
                 clip.loopTime = true;
+                clip.name = selectedObject.name;
                 Debug.Log($"Setting clip {clip.name} to loop in {selectedObject.name}");
             }
 
