@@ -7,6 +7,31 @@ namespace MarTools
     using UnityEditor;
 #endif
 
+    [System.Serializable]
+    public class TagMask
+    {
+        public enum Mode
+        {
+            Whitelist,
+            Blacklist,
+        }
+
+        public Mode mode = Mode.Blacklist;
+        public List<TagSO> Tags;
+        public bool Check(GameObject gameobject)
+        {
+            foreach (var item in Tags)
+            {
+                bool contains = gameobject.ContainsTag(item.name);
+                if(contains)
+                {
+                    return mode == Mode.Whitelist;
+                }
+            }
+            return mode == Mode.Blacklist;
+        }
+    }
+
     public static class TagsUtilities
     {
         public static bool ContainsTag(this GameObject go, string tag)

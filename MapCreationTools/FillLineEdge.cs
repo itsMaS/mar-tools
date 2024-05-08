@@ -11,7 +11,6 @@ using UnityEditor;
 [System.Serializable]
 public class Pallete : RandomUtilities.WeightedList<PalleteItem> 
 {
-    public LayerMask placeSurfaceMask = int.MaxValue;
     public GameObject Place(MonoBehaviour instantiator, Vector3 position, Quaternion rotation)
     {
         string id = $"ELEMENTS_{instantiator.GetComponentIndex()}";

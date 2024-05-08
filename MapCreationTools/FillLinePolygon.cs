@@ -7,12 +7,15 @@ namespace MarTools
     using UnityEditor;
     using System.Linq;
     using System.Runtime.InteropServices.WindowsRuntime;
+    using static UnityEditor.Progress;
 #endif
 
     [RequireComponent(typeof(LineBehavior))]
     public class FillLinePolygon : MonoBehaviour
     {
         public Pallete pallete;
+        public LayerMask LayerMask = int.MaxValue;
+        public TagMask tagMask;
 
         [SerializeField] private int density = 10;
         [SerializeField] private int seed;
@@ -20,21 +23,14 @@ namespace MarTools
         public List<TagSO> Tags = new List<TagSO>();
     
         public List<Vector3> CurrentPositions = new List<Vector3>();
-        private string elementName => $"Elements {this.GetComponentIndex()}";
-    
+        public bool raycastPlacement = true;
         public void Fill()
         {
-            Transform holder = transform.Find(elementName);
-    
             var line = GetComponent<LineBehavior>();
             CurrentPositions = line.GetPointsInsideShape(density, seed);
-            FilterPositions();
+            RaycastPositions();
     
             Clear();
-    
-            holder = (new GameObject(elementName)).transform;
-            holder.parent = transform;
-    
             foreach (var position in CurrentPositions) 
             {
                 pallete.Place(this, position, Quaternion.Euler(0, Random.value * 360, 0));
@@ -47,29 +43,33 @@ namespace MarTools
             var line = GetComponent<LineBehavior>();
             CurrentPositions = line.GetPointsInsideShape(density, seed);
 
-            FilterPositions();
+            RaycastPositions();
         }
 
-        internal void FilterPositions()
+        internal void RaycastPositions()
         {
-            CurrentPositions = CurrentPositions.Where(item =>
+            if (!raycastPlacement) return;
+
+            List<Vector3> NewPositions = new List<Vector3>();
+            for (int i = 0; i < CurrentPositions.Count; i++)
             {
-                if(Physics.Raycast(item + Vector3.up * 100, Vector3.down, out RaycastHit hit))
+                Vector3 point = CurrentPositions[i];
+
+                if (Physics.Raycast(point + Vector3.up * 100, Vector3.down, out RaycastHit hit, Mathf.Infinity, LayerMask))
                 {
-                    return (pallete.placeSurfaceMask.value & (1 << hit.collider.gameObject.layer)) != 0;
+                    if(tagMask.Check(hit.collider.gameObject))
+                    {
+                        NewPositions.Add(hit.point);
+                    }
                 }
-                return false;
-            }).ToList();
+            }
+
+            CurrentPositions = NewPositions;
         }
     
         public void Clear()
         {
-            Transform holder = transform.Find(elementName);
-            if(holder)
-            {
-                if (Application.isPlaying) Destroy(holder.gameObject);
-                else DestroyImmediate(holder.gameObject);
-            }
+            pallete.Clear(this);
         }
     }
     
