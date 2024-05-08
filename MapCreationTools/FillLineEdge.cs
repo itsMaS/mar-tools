@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -10,6 +11,7 @@ using UnityEditor;
 [System.Serializable]
 public class Pallete : RandomUtilities.WeightedList<PalleteItem> 
 {
+    public LayerMask placeSurfaceMask = int.MaxValue;
     public GameObject Place(MonoBehaviour instantiator, Vector3 position, Quaternion rotation)
     {
         string id = $"ELEMENTS_{instantiator.GetComponentIndex()}";
@@ -21,7 +23,14 @@ public class Pallete : RandomUtilities.WeightedList<PalleteItem>
         }
 
         var picked = Options.PickRandom().element;
-        return GameObject.Instantiate(picked.prefab, position, rotation, holder);
+
+
+        GameObject go = GameObject.Instantiate(picked.prefab, position, rotation, holder);
+        var bounds = go.GetComponentInChildren<Renderer>().bounds;
+
+        //GameObject.FindObjectsOfType<Renderer>().ToList().FindAll(item => bounds.Intersects(item.bounds)).ForEach(it => Debug.Log($"{it}"));
+
+        return go;
     }
 
     public void Clear(MonoBehaviour instantiator)
@@ -44,14 +53,25 @@ public class PalleteItem
 [RequireComponent(typeof(LineBehavior))]
 public class FillLineEdge : MonoBehaviour
 {
+    public enum Type
+    {
+        AmountBased = 0,
+        DistanceBased = 1,
+    }
+
     public Pallete pallete;
 
-    public int points = 10;
+    [HideInInspector] public int points = 10;
+    [HideInInspector] public float distance = 1f;
 
     public List<Vector3> Points = new List<Vector3>();
     public List<Vector3> Normals = new List<Vector3>();
+    public Type type;
 
     LineBehavior lineBehavior;
+
+    public float normalRotation = 0;
+
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.yellow;
@@ -63,8 +83,9 @@ public class FillLineEdge : MonoBehaviour
     internal void UpdatePoints()
     {
         if(!lineBehavior) lineBehavior = GetComponent<LineBehavior>();
-        var result = lineBehavior.GetPointAlongPath(points);
-        
+
+        var result = type == Type.AmountBased ? lineBehavior.GetPointAlongPath(points) : lineBehavior.GetPointAlongPath(distance);
+
         Points = result.Item1;
         Normals = result.Item2;
     }
@@ -77,7 +98,7 @@ public class FillLineEdge : MonoBehaviour
             Vector3 point = Points[i];
             Vector3 normal = Normals[i];
 
-            pallete.Place(this, point, Quaternion.LookRotation(normal, Vector3.up));
+            pallete.Place(this, point, Quaternion.LookRotation(normal, Vector3.up) * Quaternion.Euler(0, normalRotation, 0));
         }
     }
     internal void Clear()
@@ -94,7 +115,18 @@ public class FillLineEdgeEditor : Editor
     {
         base.OnInspectorGUI();
 
+
         var script = (FillLineEdge)target;
+        if(script.type == FillLineEdge.Type.AmountBased)
+        {
+            script.points = EditorGUILayout.IntField("Points along curve:", script.points);
+        }
+        else
+        {
+            script.distance = EditorGUILayout.FloatField("Distance between curve points:", script.distance);
+        }
+
+
         if(GUILayout.Button("Populate"))
         {
             script.Populate();

@@ -5,22 +5,19 @@ namespace MarTools
     using UnityEngine;
     #if UNITY_EDITOR
     using UnityEditor;
-    #endif
-    
+    using System.Linq;
+    using System.Runtime.InteropServices.WindowsRuntime;
+#endif
+
     [RequireComponent(typeof(LineBehavior))]
     public class FillLinePolygon : MonoBehaviour
     {
-        [System.Serializable]
-        public class Prefab
-        {
-            public float weight;
-            public GameObject prefab;
-        }
-    
+        public Pallete pallete;
+
         [SerializeField] private int density = 10;
         [SerializeField] private int seed;
     
-        public List<Prefab> Prefabs = new List<Prefab>();
+        public List<TagSO> Tags = new List<TagSO>();
     
         public List<Vector3> CurrentPositions = new List<Vector3>();
         private string elementName => $"Elements {this.GetComponentIndex()}";
@@ -31,17 +28,16 @@ namespace MarTools
     
             var line = GetComponent<LineBehavior>();
             CurrentPositions = line.GetPointsInsideShape(density, seed);
+            FilterPositions();
     
             Clear();
     
             holder = (new GameObject(elementName)).transform;
             holder.parent = transform;
     
-            var weighted = Prefabs.ConvertToWeighted(item => item.weight);
-    
             foreach (var position in CurrentPositions) 
             {
-                Instantiate(weighted.PickRandom().element.prefab, position, Quaternion.Euler(0, Random.value * 360, 0), holder);
+                pallete.Place(this, position, Quaternion.Euler(0, Random.value * 360, 0));
             }
         }
     
@@ -50,6 +46,20 @@ namespace MarTools
             seed = Random.Range(int.MinValue, int.MaxValue);
             var line = GetComponent<LineBehavior>();
             CurrentPositions = line.GetPointsInsideShape(density, seed);
+
+            FilterPositions();
+        }
+
+        internal void FilterPositions()
+        {
+            CurrentPositions = CurrentPositions.Where(item =>
+            {
+                if(Physics.Raycast(item + Vector3.up * 100, Vector3.down, out RaycastHit hit))
+                {
+                    return (pallete.placeSurfaceMask.value & (1 << hit.collider.gameObject.layer)) != 0;
+                }
+                return false;
+            }).ToList();
         }
     
         public void Clear()
@@ -73,7 +83,7 @@ namespace MarTools
     
             FillLinePolygon line = (FillLinePolygon)target;
     
-            if(line.Prefabs.Count > 0 && GUILayout.Button("Populate"))
+            if(GUILayout.Button("Populate"))
             {
                 line.Fill();
             }

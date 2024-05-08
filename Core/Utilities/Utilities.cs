@@ -304,5 +304,64 @@ namespace MarTools
 
             return (positions, normals);
         }
+
+        public static (List<Vector3>, List<Vector3>) GetPositionsAndNormals(List<Vector3> pathPoints, float distance)
+        {
+            List<Vector3> positions = new List<Vector3>();
+            List<Vector3> normals = new List<Vector3>();
+
+            int numPoints = Mathf.CeilToInt(pathPoints.CalculateLength() / distance);
+
+            if (pathPoints == null || pathPoints.Count < 2 || numPoints <= 0)
+            {
+                Debug.LogWarning("Invalid input data provided for path calculation.");
+                return (positions, normals);
+            }
+
+            // Calculate total path length
+            float totalLength = 0f;
+            List<float> segmentLengths = new List<float>();
+            for (int i = 0; i < pathPoints.Count - 1; i++)
+            {
+                float segmentLength = Vector3.Distance(pathPoints[i], pathPoints[i + 1]);
+                segmentLengths.Add(segmentLength);
+                totalLength += segmentLength;
+            }
+
+            // Distribute the desired points evenly along the path
+            for (int i = 0; i < numPoints; i++)
+            {
+                float t = i / (float)(numPoints);
+                float targetDistance = t * totalLength;
+                float accumulatedDistance = 0f;
+
+                // Find the segment containing the target distance
+                int segmentIndex = 0;
+                while (segmentIndex < segmentLengths.Count && accumulatedDistance + segmentLengths[segmentIndex] < targetDistance)
+                {
+                    accumulatedDistance += segmentLengths[segmentIndex];
+                    segmentIndex++;
+                }
+
+                // Interpolate within the identified segment
+                if (segmentIndex < segmentLengths.Count)
+                {
+                    float remainingDistance = targetDistance - accumulatedDistance;
+                    float segmentT = remainingDistance / segmentLengths[segmentIndex];
+
+                    Vector3 segmentStart = pathPoints[segmentIndex];
+                    Vector3 segmentEnd = pathPoints[segmentIndex + 1];
+                    Vector3 interpolatedPosition = Vector3.Lerp(segmentStart, segmentEnd, segmentT);
+                    positions.Add(interpolatedPosition);
+
+                    // Calculate tangent and then normal vector
+                    Vector3 tangent = (segmentEnd - segmentStart).normalized;
+                    Vector3 normal = Vector3.Cross(tangent, Vector3.up).normalized;
+                    normals.Add(normal);
+                }
+            }
+
+            return (positions, normals);
+        }
     }
 }

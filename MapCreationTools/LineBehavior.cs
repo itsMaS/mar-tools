@@ -35,7 +35,11 @@ namespace MarTools
         {
             return Utilities.GetPositionsAndNormals(smoothWorldPoints, points);
         }
-    
+        public (List<Vector3>, List<Vector3>) GetPointAlongPath(float distanceBetweenPoints)
+        {
+            return Utilities.GetPositionsAndNormals(smoothWorldPoints, distanceBetweenPoints);
+        }
+
         private void OnDrawGizmos()
         {
             Gizmos.color = lineColor;
@@ -105,6 +109,9 @@ namespace MarTools
                     smoothPoints.Add(position);
                 }
             }
+
+            if(looping)
+                smoothPoints.Add(smoothPoints.First());
             return smoothPoints;
         }
 
