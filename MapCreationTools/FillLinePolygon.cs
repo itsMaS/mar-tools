@@ -77,6 +77,8 @@ namespace MarTools
     [CustomEditor(typeof(FillLinePolygon))]
     public class PopulateLineShapeEditor : Editor
     {
+        Transform parentTransform;
+
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
@@ -95,6 +97,13 @@ namespace MarTools
             {
                 line.Clear();
             }
+
+            parentTransform = (Transform)EditorGUILayout.ObjectField("Target Transform", parentTransform, typeof(Transform), true);
+
+            if (parentTransform && GUILayout.Button("Populate pallete"))
+            {
+                PopulatePallete(line);
+            }
         }
     
         private void OnSceneGUI()
@@ -103,6 +112,15 @@ namespace MarTools
             foreach (var position in line.CurrentPositions)
             {
                 Handles.DrawWireDisc(position,Vector3.up, 1f);
+            }
+        }
+
+        private void PopulatePallete(FillLinePolygon line)
+        {
+            line.pallete.Options.Clear();
+            foreach (Transform item in parentTransform)
+            {
+                line.pallete.Options.Add(new RandomUtilities.WeightedOption<PalleteItem>(new PalleteItem() { prefab = item.gameObject }, 1));
             }
         }
     }

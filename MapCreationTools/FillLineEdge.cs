@@ -21,7 +21,7 @@ public class Pallete : RandomUtilities.WeightedList<PalleteItem>
             holder.transform.parent = instantiator.transform;
         }
 
-        var picked = Options.PickRandom().element;
+        var picked = Options.PickRandomWeighted();
 
 
         GameObject go = GameObject.Instantiate(picked.prefab, position, rotation, holder);
@@ -42,6 +42,7 @@ public class Pallete : RandomUtilities.WeightedList<PalleteItem>
         }
     }
 }
+
 [System.Serializable]
 public class PalleteItem
 {
