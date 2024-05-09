@@ -12,35 +12,56 @@ namespace MarTools
     {
         public UnityEvent<Interactable> OnHover;
         public UnityEvent<Interactable> OnUnhover;
-        public UnityEvent<Interactable> OnInteract;
-        public InputActionReference interactInput;
+        public UnityEvent<Interactable> OnInteractStart;
+        public UnityEvent<Interactable> OnInteracted;
+        public UnityEvent<Interactable> OnInteractCancelled;
+        public UnityEvent<Interactable, float> OnInteractTick;
+
     
         [SerializeField] Transform raycastPosition;
         [SerializeField] float raycastDistance = 10;
         [SerializeField] float raycastWidth = 5;
     
         public Interactable hovered { get; private set; }
+        public Interactable interactable { get; private set; }
+        
         public bool active = true;
     
-        private void Awake()
+
+
+        public void BeginInteract()
         {
-            if(interactInput != null)
-                interactInput.action.performed += Interact;
+            if (hovered)
+            {
+                interactable = hovered;
+                hovered.InteractStart(this);
+            }
+            OnInteractStart.Invoke(hovered);
         }
-    
-        private void Interact(InputAction.CallbackContext obj)
+
+        public void StopInteract()
         {
-            Interact();
-        }
-    
-        public void Interact()
-        {
-            if (hovered) hovered.InteractStart(this);
-            OnInteract.Invoke(hovered);
+            if(interactable)
+            {
+                interactable.InteractEnd(this);
+                OnInteractTick.Invoke(interactable, interactable.interactionProgressNormalized);
+                interactable = null;
+            }
         }
     
         private void Update()
         {
+            if(interactable && !interactable.available)
+            {
+                StopInteract();
+            }
+
+            if(interactable)
+            {
+                OnInteractTick.Invoke(interactable, interactable.interactionProgressNormalized);
+            }
+
+
             if(!active)
             {
                 if(hovered)
@@ -53,7 +74,7 @@ namespace MarTools
                 return;
             }
     
-            TryCastFirst<Interactable>(out Interactable newHovered, raycastDistance, raycastWidth, item => item.available);
+            TryCastFirst(out Interactable newHovered, raycastDistance, raycastWidth, item => item.available);
     
             if(newHovered != hovered)
             {
@@ -72,14 +93,14 @@ namespace MarTools
             }
         }
     
-        public List<T> CastFromEye<T>(float range, float width, Func<T, bool> checkFunction = null) where T : Component
+        public List<Interactable> CastFromEye(float range, float width, Func<Interactable, bool> checkFunction = null)
         {
-            List<T> Items = new List<T>();
+            List<Interactable> Items = new List<Interactable>();
             Debug.DrawLine(raycastPosition.position, raycastPosition.position + raycastPosition.forward * range, Color.yellow);
             foreach (var t in Physics.SphereCastAll(raycastPosition.transform.position, width, raycastPosition.transform.forward, range))
             {
                 GameObject target = t.rigidbody ? t.rigidbody.gameObject : t.collider.gameObject;
-                if (target.TryGetComponent<T>(out var item) && (checkFunction == null || checkFunction.Invoke(item)))
+                if (target.TryGetComponent<Interactable>(out var item) && (checkFunction == null || checkFunction.Invoke(item)))
                 {
                     Items.Add(item);
                 }
@@ -87,15 +108,22 @@ namespace MarTools
             return Items;
         }
     
-        public bool TryCastFirst<T>(out T item, float range = 5, float width = 5, Func<T, bool> checkFunction = null) where T : Component
+        public bool TryCastFirst(out Interactable item, float range = 5, float width = 5, Func<Interactable, bool> checkFunction = null)
         {
             item = null;
-            var found = CastFromEye<T>(raycastDistance, width, checkFunction);
+            var found = CastFromEye(raycastDistance, width, checkFunction);
             float minDistance = float.MaxValue;
+            
             if (found.Count > 0)
             {
                 foreach (var f in found)
                 {
+                    if (f == interactable)
+                    {
+                        item = f;
+                        return true;
+                    }
+
                     float distance = Vector3.Distance(f.transform.position, raycastPosition.position + raycastPosition.forward * range);
                     if(distance < minDistance)
                     {

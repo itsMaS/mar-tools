@@ -6,7 +6,8 @@ namespace MarTools
     using TMPro;
     using UnityEngine;
     using UnityEngine.Events;
-    
+    using UnityEngine.UI;
+
     [DefaultExecutionOrder(999)]
     public class InputPrompts : MonoBehaviour
     {
@@ -35,13 +36,16 @@ namespace MarTools
                 }
             }
         }
-    
+
+
+
         public Camera cam;
     
         public Interactable hoveredInteractable;
         [SerializeField] RectTransform promptTr;
         [SerializeField] RectTransform maskTr;
-        private TextMeshProUGUI interactionText;
+        [SerializeField] Image interactionFillImage;
+        [SerializeField] TextMeshProUGUI interactionText;
     
         public UnityEvent<Interactable> OnHover;
         public UnityEvent<Interactable> OnUnhover;
@@ -55,7 +59,6 @@ namespace MarTools
         private void Start()
         {
             if (!cam) cam = Camera.main;
-            interactionText = GetComponentInChildren<TextMeshProUGUI>(true);
         }
     
         private void Unhover(Interactable arg0)
@@ -81,6 +84,7 @@ namespace MarTools
             if(hoveredInteractable)
             {
                 UpdatePointPosition();
+                interactionFillImage.fillAmount = hoveredInteractable.interactionProgressNormalized;
             }
         }
     

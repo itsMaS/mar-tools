@@ -363,5 +363,20 @@ namespace MarTools
 
             return (positions, normals);
         }
+
+        public static Transform FindRecursive(this Transform parent, string childName)
+        {
+            if (parent.name == childName)
+                return parent;
+
+            foreach (Transform child in parent)
+            {
+                Transform result = child.FindRecursive(childName);
+                if (result != null)
+                    return result;
+            }
+
+            return null;
+        }
     }
 }

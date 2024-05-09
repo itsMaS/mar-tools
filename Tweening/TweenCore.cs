@@ -19,7 +19,12 @@ namespace MarTools
         public bool local = true;
         public float duration = 1f;
         private Coroutine coroutine;
-    
+
+        private void Awake()
+        {
+            SetPose(0);
+        }
+
         private void OnEnable()
         {
             if (playOnEnable) PlayForward();
