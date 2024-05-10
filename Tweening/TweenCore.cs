@@ -6,10 +6,10 @@ namespace MarTools
     using UnityEngine.InputSystem.LowLevel;
     using UnityEngine.UIElements;
     using System;
+    using UnityEngine.Events;
     #if UNITY_EDITOR
     using UnityEditor;
-    using UnityEngine.Events;
-#endif
+    #endif
 
     public abstract class TweenCore : MonoBehaviour
     {

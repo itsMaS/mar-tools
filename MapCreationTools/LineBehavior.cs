@@ -4,9 +4,11 @@ namespace MarTools
     using System.Collections.Generic;
     using System.Linq;
     using Unity.VisualScripting;
-    using UnityEditor;
     using UnityEngine;
     using UnityEngine.Events;
+#if UNITY_EDITOR
+    using UnityEditor;
+#endif
 
     public class LineBehavior : MonoBehaviour
     {
@@ -120,7 +122,8 @@ namespace MarTools
             OnModified.Invoke();
         }
     }
-    
+
+#if UNITY_EDITOR
     [CustomEditor(typeof(LineBehavior))]
     public class LineDrawerEditor : Editor
     {
@@ -380,5 +383,5 @@ namespace MarTools
             }
         }
     }
-    
+#endif
 }

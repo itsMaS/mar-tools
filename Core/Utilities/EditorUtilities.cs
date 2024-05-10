@@ -4,7 +4,9 @@ namespace MarTools
     using System.Collections.Generic;
     using UnityEditor;
     using UnityEngine;
-    
+
+#if UNITY_EDITOR
+
     public static class EditorUtilities
     {
         // Example function to find all assets of a specified type
@@ -26,5 +28,5 @@ namespace MarTools
             return list;
         }
     }
-    
+#endif
 }
