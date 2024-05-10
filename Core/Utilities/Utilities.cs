@@ -149,7 +149,7 @@ namespace MarTools
             return vector;
         }
         
-        public static Vector3 Round(this Vector3 vector, float gridScale)
+        public static Vector3 Snap(this Vector3 vector, float gridScale)
         {
             vector /= gridScale;
             vector = new Vector3(Mathf.RoundToInt(vector.x), Mathf.RoundToInt(vector.y), Mathf.RoundToInt(vector.z));
@@ -306,7 +306,7 @@ namespace MarTools
             return (positions, normals);
         }
 
-        public static (List<Vector3>, List<Vector3>) GetPositionsAndNormals(List<Vector3> pathPoints, float distance)
+        public static (List<Vector3>, List<Vector3>) GetPositionsAndNormals(List<Vector3> pathPoints, float distance, float offset)
         {
             List<Vector3> positions = new List<Vector3>();
             List<Vector3> normals = new List<Vector3>();
@@ -320,7 +320,7 @@ namespace MarTools
             }
 
             // Calculate total path length
-            float totalLength = 0f;
+            float totalLength = 0;
             List<float> segmentLengths = new List<float>();
             for (int i = 0; i < pathPoints.Count - 1; i++)
             {
@@ -334,7 +334,7 @@ namespace MarTools
             {
                 float t = i / (float)(numPoints);
                 float targetDistance = t * totalLength;
-                float accumulatedDistance = 0f;
+                float accumulatedDistance = offset;
 
                 // Find the segment containing the target distance
                 int segmentIndex = 0;

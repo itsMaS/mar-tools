@@ -63,6 +63,7 @@ public class FillLineEdge : MonoBehaviour
 
     [HideInInspector] public int points = 10;
     [HideInInspector] public float distance = 1f;
+    public float offset = 0;
 
     public List<Vector3> Points = new List<Vector3>();
     public List<Vector3> Normals = new List<Vector3>();
@@ -84,7 +85,7 @@ public class FillLineEdge : MonoBehaviour
     {
         if(!lineBehavior) lineBehavior = GetComponent<LineBehavior>();
 
-        var result = type == Type.AmountBased ? lineBehavior.GetPointAlongPath(points) : lineBehavior.GetPointAlongPath(distance);
+        var result = type == Type.AmountBased ? lineBehavior.GetPointAlongPath(points, offset) : lineBehavior.GetPointAlongPath(distance, offset);
 
         Points = result.Item1;
         Normals = result.Item2;

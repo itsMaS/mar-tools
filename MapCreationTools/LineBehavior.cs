@@ -31,13 +31,13 @@ namespace MarTools
             return smoothWorldPoints.CalculateLength();
         }
 
-        public (List<Vector3>, List<Vector3>) GetPointAlongPath(int points)
+        public (List<Vector3>, List<Vector3>) GetPointAlongPath(int points, float offset)
         {
             return Utilities.GetPositionsAndNormals(smoothWorldPoints, points);
         }
-        public (List<Vector3>, List<Vector3>) GetPointAlongPath(float distanceBetweenPoints)
+        public (List<Vector3>, List<Vector3>) GetPointAlongPath(float distanceBetweenPoints, float offset)
         {
-            return Utilities.GetPositionsAndNormals(smoothWorldPoints, distanceBetweenPoints);
+            return Utilities.GetPositionsAndNormals(smoothWorldPoints, distanceBetweenPoints, offset);
         }
 
         private void OnDrawGizmos()
@@ -127,8 +127,8 @@ namespace MarTools
         private LineBehavior lineDrawer;
         private Vector3 cursorWorldPosition;
     
-        private float gridSize = 5;
-        private bool snap = false;
+        private float gridSize => EditorPrefs.GetFloat("GridSize", 5);
+        private bool snap => EditorPrefs.GetBool("Snapping", false);
     
     
         private void OnEnable()
@@ -147,7 +147,9 @@ namespace MarTools
             lineDrawer.lineColor = EditorGUILayout.ColorField("Color", lineDrawer.lineColor);
             lineDrawer.smoothing = EditorGUILayout.IntSlider("Smoothing", lineDrawer.smoothing, 0, 10);
             lineDrawer.looping = EditorGUILayout.Toggle("Looping", lineDrawer.looping);
-            gridSize = EditorGUILayout.FloatField("Grid size", gridSize);
+            
+            float newGridSize = EditorGUILayout.FloatField("Grid size", gridSize);
+            EditorPrefs.SetFloat("GridSize",newGridSize);
     
             if(GUILayout.Button("Clear Points"))
             {
@@ -157,7 +159,7 @@ namespace MarTools
             {
                 for (int i = 0; i < lineDrawer.points.Count; i++)
                 {
-                    lineDrawer.points[i] = lineDrawer.points[i].Round(gridSize);
+                    lineDrawer.points[i] = lineDrawer.points[i].Snap(gridSize);
                 }
             }
             if (GUILayout.Button("Set pivot to median points"))
@@ -189,7 +191,7 @@ namespace MarTools
     
             if (Event.current.control && Event.current.type == EventType.KeyDown)
             {
-                snap = !snap;
+                EditorPrefs.SetBool("Snapping", !snap);
             }
     
             if(snap)
@@ -286,7 +288,14 @@ namespace MarTools
                 {
                     if (Event.current.button == 0)
                     {
-                        lineDrawer.points.Insert(insertIndex, lineDrawer.transform.InverseTransformPoint(cursorWorldPosition));
+                        Vector3 insertPoint = lineDrawer.transform.InverseTransformPoint(cursorWorldPosition);
+                        if(snap)
+                        {
+                            insertPoint = insertPoint.Snap(gridSize);
+                        }
+
+                        lineDrawer.points.Insert(insertIndex, insertPoint);
+
                         Event.current.Use();
                         lineDrawer.Modified();
                         EditorUtility.SetDirty(lineDrawer);
@@ -327,7 +336,7 @@ namespace MarTools
                         if(snap)
                         {
     
-                            newPointLocal = newPointLocal.Round(gridSize);
+                            newPointLocal = newPointLocal.Snap(gridSize);
                         }
 
                         lineDrawer.points[i] = newPointLocal;
