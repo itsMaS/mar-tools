@@ -79,7 +79,7 @@ namespace MarTools
         private void LateUpdate()
         {
             maskTr.anchorMin = new Vector2(cam.rect.x, cam.rect.y);
-            maskTr.anchorMax = new Vector2(cam.rect.width, cam.rect.height);
+            maskTr.anchorMax = new Vector2(cam.rect.x +cam.rect.width, cam.rect.y + cam.rect.height);
     
             if(hoveredInteractable)
             {

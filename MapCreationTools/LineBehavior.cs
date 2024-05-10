@@ -289,11 +289,14 @@ namespace MarTools
                         lineDrawer.points.Insert(insertIndex, lineDrawer.transform.InverseTransformPoint(cursorWorldPosition));
                         Event.current.Use();
                         lineDrawer.Modified();
+                        EditorUtility.SetDirty(lineDrawer);
+
                     }
                     else if (Event.current.button == 1)
                     {
                         lineDrawer.points.RemoveAt(removeIndex);
                         lineDrawer.Modified();
+                        EditorUtility.SetDirty(lineDrawer);
                     }
                 }
     
@@ -329,6 +332,7 @@ namespace MarTools
 
                         lineDrawer.points[i] = newPointLocal;
                         lineDrawer.Modified();
+                        EditorUtility.SetDirty(lineDrawer);
                     }
                 }
             }

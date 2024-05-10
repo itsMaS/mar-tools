@@ -9,7 +9,13 @@ namespace MarTools
     {
         public UnityEvent OnActivated;
         public float delay = 1;
-    
+        public bool activateOnEnable = false;
+
+        private void OnEnable()
+        {
+            if (activateOnEnable) ActivateDelayed();
+        }
+
         public void Activate()
         {
             OnActivated.Invoke();

@@ -8,10 +8,13 @@ namespace MarTools
     using System;
     #if UNITY_EDITOR
     using UnityEditor;
-    #endif
-    
+    using UnityEngine.Events;
+#endif
+
     public abstract class TweenCore : MonoBehaviour
     {
+        public UnityEvent OnComplete;
+
         public bool looping = false;
         public bool playOnEnable = false;
     
@@ -25,6 +28,11 @@ namespace MarTools
             SetPose(0);
         }
 
+        protected virtual void Reset()
+        {
+            
+        }
+
         private void OnEnable()
         {
             if (playOnEnable) PlayForward();
@@ -32,12 +40,21 @@ namespace MarTools
         public void PlayForward()
         {
             ResetCoroutine();
-            this.DelayedAction(duration, () => { if (looping) PlayForward(); }, t => SetPose(t), true, ease);
+            this.DelayedAction(duration, () => 
+            {
+                Complete();
+                if (looping) PlayForward(); 
+            }, t => SetPose(t), true, ease);
         }
         public void PlayBackwards()
         {
             ResetCoroutine();
-            this.DelayedAction(duration, null, t => SetPose(1-t), true, ease);
+            this.DelayedAction(duration, Complete, t => SetPose(1-t), true, ease);
+        }
+
+        private void Complete()
+        {
+            OnComplete.Invoke();
         }
     
         private void ResetCoroutine()

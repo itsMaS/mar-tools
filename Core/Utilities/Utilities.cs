@@ -27,6 +27,7 @@ namespace MarTools
                 onUpdate?.Invoke(Eases[ease].Invoke(t));
                 yield return null;
             }
+            onUpdate?.Invoke(Eases[ease].Invoke(1));
             onComplete?.Invoke();
         }
         
