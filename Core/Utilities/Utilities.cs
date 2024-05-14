@@ -194,11 +194,10 @@ namespace MarTools
                     break;
                 }
             }
-        
             return pointsInside;
         }
         
-        private static bool IsPointInside(List<Vector3> vertices, Vector3 point)
+        public static bool IsPointInside(List<Vector3> vertices, Vector3 point)
         {
             bool inside = false;
             int j = vertices.Count - 1;

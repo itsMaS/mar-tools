@@ -8,6 +8,7 @@ namespace MarTools
     using UnityEngine.Events;
 #if UNITY_EDITOR
     using UnityEditor;
+    using static UnityEditor.Searcher.SearcherWindow.Alignment;
 #endif
 
     public class LineBehavior : MonoBehaviour
@@ -120,6 +121,39 @@ namespace MarTools
         internal void Modified()
         {
             OnModified.Invoke();
+        }
+
+        internal List<Vector3> GetPointsInsideGrid(float density)
+        {
+            List<Vector3> pointsInside = new List<Vector3>();
+            List<Vector3> LocalSmoothed = smoothWorldPoints.ConvertAll<Vector3>(item => transform.InverseTransformPoint(item));
+
+            Vector4 bounds = new Vector4(LocalSmoothed.Min(i => i.x), LocalSmoothed.Max(i => i.x), LocalSmoothed.Min(i => i.z), LocalSmoothed.Max(i => i.z));
+            Vector2 boundsSize = new Vector2(Mathf.Abs(bounds.x - bounds.y), Mathf.Abs(bounds.z - bounds.w));
+
+
+            int xRows = Mathf.CeilToInt(boundsSize.x * density);
+            int yRows = Mathf.CeilToInt(boundsSize.y * density);
+
+            Debug.Log($"Geenerate inside grid {xRows} {yRows}");
+
+            for (int i = 0; i < xRows; i++)
+            {
+                for (int j = 0; j < yRows; j++)
+                {
+                    float tHoriz = (float)i / xRows;
+                    float tVert = (float)j / yRows;
+
+                    float len = 0.5f / density;
+                    Vector3 point = (Mathf.Lerp(bounds.x, bounds.y, tHoriz) + len) * Vector3.right + (Mathf.Lerp(bounds.z, bounds.w, tVert)+ len) * Vector3.forward;
+                    if (Utilities.IsPointInside(LocalSmoothed, point))
+                    {
+                        pointsInside.Add(transform.TransformPoint(point));
+                    }
+                }
+            }
+
+            return pointsInside;
         }
     }
 

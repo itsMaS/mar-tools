@@ -17,7 +17,7 @@ namespace MarTools
         public LayerMask LayerMask = int.MaxValue;
         public TagMask tagMask;
 
-        [SerializeField] private int density = 10;
+        [SerializeField] private float density = 10;
         [SerializeField] private int seed;
     
         public List<TagSO> Tags = new List<TagSO>();
@@ -27,13 +27,18 @@ namespace MarTools
         public void Fill()
         {
             var line = GetComponent<LineBehavior>();
-            CurrentPositions = line.GetPointsInsideShape(density, seed);
+            if(CurrentPositions.Count <= 0) 
+            {
+                Debug.LogError("No positions to fill");
+                return;
+            }
+
             RaycastPositions();
     
             Clear();
             foreach (var position in CurrentPositions) 
             {
-                pallete.Place(this, position, Quaternion.Euler(0, Random.value * 360, 0));
+                pallete.Place(this, position, transform.rotation);
             }
         }
     
@@ -41,7 +46,7 @@ namespace MarTools
         {
             seed = Random.Range(int.MinValue, int.MaxValue);
             var line = GetComponent<LineBehavior>();
-            CurrentPositions = line.GetPointsInsideShape(density, seed);
+            CurrentPositions = line.GetPointsInsideShape((int)density, seed);
 
             RaycastPositions();
         }
@@ -71,6 +76,12 @@ namespace MarTools
         {
             pallete.Clear(this);
         }
+
+        internal void GenerateGrid()
+        {
+            var line = GetComponent<LineBehavior>();
+            CurrentPositions = line.GetPointsInsideGrid(density);
+        }
     }
     
     #if UNITY_EDITOR
@@ -92,6 +103,10 @@ namespace MarTools
             if(GUILayout.Button("New Seed"))
             {
                 line.NewSeed();
+            }
+            if(GUILayout.Button("Generate grid"))
+            {
+                line.GenerateGrid();
             }
             if(GUILayout.Button("Clear"))
             {
