@@ -22,6 +22,8 @@ namespace MarTools
         public bool local = true;
         public float duration = 1f;
         private Coroutine coroutine;
+        private bool forward = false;
+
 
         private void Awake()
         {
@@ -39,6 +41,7 @@ namespace MarTools
         }
         public void PlayForward()
         {
+            forward = true;
             ResetCoroutine();
             this.DelayedAction(duration, () => 
             {
@@ -48,8 +51,22 @@ namespace MarTools
         }
         public void PlayBackwards()
         {
+            forward = false;
             ResetCoroutine();
             this.DelayedAction(duration, Complete, t => SetPose(1-t), true, ease);
+        }
+
+        public void Toggle()
+        {
+            if(forward)
+            {
+                PlayBackwards();
+            }
+            else
+            {
+                PlayForward();
+            }
+
         }
 
         private void Complete()

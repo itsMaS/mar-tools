@@ -10,6 +10,7 @@ namespace MarTools
     using UnityEditor;
 #endif
 
+    [SelectionBase]
     public class LineBehavior : MonoBehaviour
     {
         public UnityEvent OnModified;
@@ -33,11 +34,7 @@ namespace MarTools
             return smoothWorldPoints.CalculateLength();
         }
 
-        public (List<Vector3>, List<Vector3>) GetPointAlongPath(int points, float offset)
-        {
-            return Utilities.GetPositionsAndNormals(smoothWorldPoints, points);
-        }
-        public (List<Vector3>, List<Vector3>) GetPointAlongPath(float distanceBetweenPoints, float offset)
+        public List<(Vector3, Vector3)> GetPointsAlongLine(float distanceBetweenPoints, float offset)
         {
             return Utilities.GetPositionsAndNormals(smoothWorldPoints, distanceBetweenPoints, offset);
         }
@@ -127,8 +124,10 @@ namespace MarTools
             OnModified.Invoke();
         }
 
-        internal List<Vector3> GetPointsInsideGrid(float density)
+        internal List<Vector3> GetPointsInsideGrid(float spacing)
         {
+            float density = 1f/ spacing;
+
             List<Vector3> pointsInside = new List<Vector3>();
             List<Vector3> LocalSmoothed = smoothWorldPoints.ConvertAll<Vector3>(item => transform.InverseTransformPoint(item));
 
@@ -138,8 +137,6 @@ namespace MarTools
 
             int xRows = Mathf.CeilToInt(boundsSize.x * density);
             int yRows = Mathf.CeilToInt(boundsSize.y * density);
-
-            Debug.Log($"Geenerate inside grid {xRows} {yRows}");
 
             for (int i = 0; i < xRows; i++)
             {
@@ -158,6 +155,14 @@ namespace MarTools
             }
 
             return pointsInside;
+        }
+
+        internal void UpdateShape()
+        {
+            foreach (var item in GetComponentsInChildren<LineBehaviorReceiver>())
+            {
+                item.UpdateEditor();
+            }
         }
     }
 
@@ -223,6 +228,13 @@ namespace MarTools
     
         private void OnSceneGUI()
         {
+            if(Event.current.type == EventType.MouseUp && Event.current.button == 0)
+            {
+                Undo.RecordObject(lineDrawer, "Move points");
+                lineDrawer.UpdateShape();
+            }
+
+
             Plane plane = new Plane(Vector3.up, 0);
             Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
             if(plane.Raycast(ray, out float distance))
@@ -237,19 +249,9 @@ namespace MarTools
     
             if(snap)
             {
-                int amount = 30;
-                float length = amount * gridSize * 2;
-                for (int i = -amount; i < amount; i++)
-                {
-                    Vector3 pointVertical = lineDrawer.transform.TransformPoint(new Vector3(i * gridSize, 0, -length / 2));
-                    Vector3 pointHorizontal = lineDrawer.transform.TransformPoint(new Vector3(-length / 2, 0, i * gridSize));
-    
-                    Handles.color = Color.white * (0.4f + (((i + 10000) % 10) == 0 ? 0.2f : 0));
-                    Handles.DrawLine(pointVertical, pointVertical + lineDrawer.transform.forward * length);
-                    Handles.DrawLine(pointHorizontal, pointHorizontal + lineDrawer.transform.right * length);
-                }
+                DrawGrid();
             }
-    
+
             AddPoints();
     
             var localPoints = lineDrawer.worldPoints;
@@ -258,8 +260,24 @@ namespace MarTools
             Handles.color = col;
     
             Handles.DrawAAPolyLine(2, localPoints.ToArray());
+
         }
-    
+
+        private void DrawGrid()
+        {
+            int amount = 30;
+            float length = amount * gridSize * 2;
+            for (int i = -amount; i < amount; i++)
+            {
+                Vector3 pointVertical = lineDrawer.transform.TransformPoint(new Vector3(i * gridSize, 0, -length / 2));
+                Vector3 pointHorizontal = lineDrawer.transform.TransformPoint(new Vector3(-length / 2, 0, i * gridSize));
+
+                Handles.color = Color.white * (0.5f + (((i + 10000) % 10) == 0 ? 0.3f : 0.0f));
+                Handles.DrawLine(pointVertical, pointVertical + lineDrawer.transform.forward * length);
+                Handles.DrawLine(pointHorizontal, pointHorizontal + lineDrawer.transform.right * length);
+            }
+        }
+
         private void UpdateEditor()
         {
             SceneView.RepaintAll();
@@ -338,14 +356,12 @@ namespace MarTools
                         lineDrawer.points.Insert(insertIndex, insertPoint);
 
                         Event.current.Use();
-                        lineDrawer.Modified();
                         EditorUtility.SetDirty(lineDrawer);
 
                     }
                     else if (Event.current.button == 1)
                     {
                         lineDrawer.points.RemoveAt(removeIndex);
-                        lineDrawer.Modified();
                         EditorUtility.SetDirty(lineDrawer);
                     }
                 }
@@ -376,12 +392,10 @@ namespace MarTools
                     {
                         if(snap)
                         {
-    
                             newPointLocal = newPointLocal.Snap(gridSize);
                         }
 
                         lineDrawer.points[i] = newPointLocal;
-                        lineDrawer.Modified();
                         EditorUtility.SetDirty(lineDrawer);
                     }
                 }
@@ -419,6 +433,12 @@ namespace MarTools
                 Vector3 nearestPointOnLine = lineStart + projectionFactor * lineVector;
                 return Vector3.Distance(point, nearestPointOnLine);
             }
+        }
+
+
+        private void DataChanged()
+        {
+            Debug.Log("Data Changed");
         }
     }
 #endif

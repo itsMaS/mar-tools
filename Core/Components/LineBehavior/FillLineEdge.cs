@@ -87,10 +87,10 @@ namespace MarTools
         {
             if(!lineBehavior) lineBehavior = GetComponent<LineBehavior>();
     
-            var result = type == Type.AmountBased ? lineBehavior.GetPointAlongPath(points, offset) : lineBehavior.GetPointAlongPath(distance, offset);
+            var result = type == Type.AmountBased ? lineBehavior.GetPointsAlongLine(points, offset) : lineBehavior.GetPointsAlongLine(distance, offset);
     
-            Points = result.Item1;
-            Normals = result.Item2;
+            //Points = result.Item1;
+            //Normals = result.Item2;
         }
     
         internal void Populate()

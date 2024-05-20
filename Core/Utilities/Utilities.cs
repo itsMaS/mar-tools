@@ -305,17 +305,15 @@ namespace MarTools
             return (positions, normals);
         }
 
-        public static (List<Vector3>, List<Vector3>) GetPositionsAndNormals(List<Vector3> pathPoints, float distance, float offset)
+        public static List<(Vector3, Vector3)> GetPositionsAndNormals(List<Vector3> pathPoints, float distance, float offset)
         {
-            List<Vector3> positions = new List<Vector3>();
-            List<Vector3> normals = new List<Vector3>();
+            List<(Vector3, Vector3)> positions = new List<(Vector3, Vector3)>();
 
             int numPoints = Mathf.CeilToInt(pathPoints.CalculateLength() / distance);
 
             if (pathPoints == null || pathPoints.Count < 2 || numPoints <= 0)
             {
-                Debug.LogWarning("Invalid input data provided for path calculation.");
-                return (positions, normals);
+                return positions;
             }
 
             // Calculate total path length
@@ -352,16 +350,15 @@ namespace MarTools
                     Vector3 segmentStart = pathPoints[segmentIndex];
                     Vector3 segmentEnd = pathPoints[segmentIndex + 1];
                     Vector3 interpolatedPosition = Vector3.Lerp(segmentStart, segmentEnd, segmentT);
-                    positions.Add(interpolatedPosition);
 
                     // Calculate tangent and then normal vector
                     Vector3 tangent = (segmentEnd - segmentStart).normalized;
                     Vector3 normal = Vector3.Cross(tangent, Vector3.up).normalized;
-                    normals.Add(normal);
+                    positions.Add((interpolatedPosition, normal));
                 }
             }
 
-            return (positions, normals);
+            return (positions);
         }
 
         public static Transform FindRecursive(this Transform parent, string childName)
