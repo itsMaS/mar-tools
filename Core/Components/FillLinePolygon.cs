@@ -24,6 +24,7 @@ namespace MarTools
     
         public List<Vector3> CurrentPositions = new List<Vector3>();
         public bool raycastPlacement = true;
+        public Vector3 offset = Vector3.zero;
         public void Fill()
         {
             var line = GetComponent<LineBehavior>();
@@ -80,7 +81,7 @@ namespace MarTools
         internal void GenerateGrid()
         {
             var line = GetComponent<LineBehavior>();
-            CurrentPositions = line.GetPointsInsideGrid(density);
+            CurrentPositions = line.GetPointsInsideGrid(density).ConvertAll(i => i + offset);
         }
     }
     
