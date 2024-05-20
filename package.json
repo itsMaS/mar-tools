@@ -5,8 +5,8 @@
   "description": "Base utilities for Unity games, providing essential tools and functions to streamline game development.",
   "unity": "2020.1",
   "author": {
-    "name": "Martynas Šiškauskas",
-    "email": "martynas.siskauskas@gmail.com",
+    "name": "Martynas ï¿½iï¿½kauskas",
+    "email": "martynas.siskauskas@gmail.com"
   },
   "keywords": [ "utilities", "base", "tools" ]
 }
