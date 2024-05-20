@@ -1,0 +1,12 @@
+{
+  "name": "com.itsmas.martools",
+  "version": "1.0.0",
+  "displayName": "MarTools",
+  "description": "Base utilities for Unity games, providing essential tools and functions to streamline game development.",
+  "unity": "2020.1",
+  "author": {
+    "name": "Martynas Šiškauskas",
+    "email": "martynas.siskauskas@gmail.com",
+  },
+  "keywords": [ "utilities", "base", "tools" ]
+}
