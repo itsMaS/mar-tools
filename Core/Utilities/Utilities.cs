@@ -378,5 +378,57 @@ namespace MarTools
 
             return null;
         }
+
+        // This method assumes that path is a list of points forming a polyline
+        // and t is the normalized position along the path (0=start, 1=end)
+        public static (Vector3 point, Vector3 normal) GetPointAndNormalAlongPath(this List<Vector3> path, float t)
+        {
+            if (path == null || path.Count < 2)
+            {
+                Debug.LogError("Invalid path data.");
+                return (Vector3.zero, Vector3.up); // Return up vector as default normal in error case
+            }
+
+            // Clamp t to be between 0 and 1
+            t = Mathf.Clamp01(t);
+
+            // Calculate the total length of the path and the lengths between each point
+            float totalLength = 0;
+            List<float> lengths = new List<float>();
+
+            for (int i = 1; i < path.Count; i++)
+            {
+                float segmentLength = Vector3.Distance(path[i - 1], path[i]);
+                lengths.Add(segmentLength);
+                totalLength += segmentLength;
+            }
+
+            // Find the segment where the point should be
+            float targetLength = t * totalLength;
+            float accumulatedLength = 0;
+
+            for (int i = 0; i < lengths.Count; i++)
+            {
+                accumulatedLength += lengths[i];
+                if (accumulatedLength >= targetLength)
+                {
+                    // Found the segment
+                    float segmentT = 1 - (accumulatedLength - targetLength) / lengths[i];
+                    Vector3 pointOnSegment = Vector3.Lerp(path[i], path[i + 1], segmentT);
+
+                    // Calculate the tangent vector as the derivative of the Lerp
+                    Vector3 tangent = (path[i + 1] - path[i]).normalized;
+
+                    // Generate a simple normal (not necessarily the true normal, depending on the path orientation)
+                    // Assuming the path is generally horizontal, a perpendicular vector in the plane can be a normal
+                    Vector3 normal = Vector3.Cross(tangent, Vector3.up).normalized;
+
+                    return (pointOnSegment, normal);
+                }
+            }
+
+            // If we're at the end of the path
+            return (path[path.Count - 1], Vector3.up);
+        }
     }
 }

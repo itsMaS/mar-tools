@@ -42,6 +42,11 @@ namespace MarTools
             return Utilities.GetPositionsAndNormals(smoothWorldPoints, distanceBetweenPoints, offset);
         }
 
+        public (Vector3, Vector3) GetPositionAndNormalAt(float t)
+        {
+            return smoothWorldPoints.GetPointAndNormalAlongPath(t);
+        }
+
         private void OnDrawGizmos()
         {
             Gizmos.color = lineColor;
