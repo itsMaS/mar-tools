@@ -8,7 +8,6 @@ namespace MarTools
     using UnityEngine.Events;
 #if UNITY_EDITOR
     using UnityEditor;
-    using static UnityEditor.Searcher.SearcherWindow.Alignment;
 #endif
 
     public class LineBehavior : MonoBehaviour
