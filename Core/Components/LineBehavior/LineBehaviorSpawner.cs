@@ -8,6 +8,8 @@ namespace MarTools
 #if UNITY_EDITOR
     using UnityEditor;
     using System;
+    using JetBrains.Annotations;
+    using System.Linq;
 #endif
 
     public abstract class LineBehaviorSpawner : MonoBehaviour
@@ -54,11 +56,17 @@ namespace MarTools
         public string groupName = "";
 
         public List<SpawnPosition> SpawnPositions = new List<SpawnPosition>();
-        public GameObject prefab;
+        public List<LineBehavior> OutsideOf;
+        public List<LineBehavior> InsideOf;
+
+        [HideInInspector] public RandomUtilities.WeightedList<GameObject> Options = new RandomUtilities.WeightedList<GameObject>();
 
         public void UpdateEditor()
         {
             SpawnPositions = UpdatePositions();
+
+            SpawnPositions.RemoveAll(x => OutsideOf.Any(y => y.IsPointInsideShape(x.position)));
+            SpawnPositions.RemoveAll(x => !InsideOf.Any(y => y.IsPointInsideShape(x.position)));
         }
 
         public GameObject AddElement(GameObject go, Vector3 position, Quaternion rotation, Vector3 scale)
@@ -108,11 +116,12 @@ namespace MarTools
 
         internal void SpawnObjects()
         {
-            ClearElements();
+            if (Options.Options.Count <= 0) return;
 
+            ClearElements();
             foreach (var item in SpawnPositions)
             {
-                AddElement(prefab, item.position, item.rotation, item.scale);
+                AddElement(Options.PickRandom(), item.position, item.rotation, item.scale);
             }
         }
 
@@ -135,6 +144,31 @@ namespace MarTools
             if(GUILayout.Button("Spawn Objects"))
             {
                 spawner.SpawnObjects();
+            }
+            if(GUILayout.Button("Clear Objects"))
+            {
+                spawner.ClearElements();
+            }
+
+            for (int i = 0; i < spawner.Options.Options.Count; i++)
+            {
+                var element = spawner.Options.Options[i];
+                GUILayout.BeginHorizontal();
+
+                spawner.Options.Options[i].element = (GameObject)EditorGUILayout.ObjectField("Game Object", element.element, typeof(GameObject), true);
+                spawner.Options.Options[i].weight = EditorGUILayout.Slider(element.weight, 0, 1);
+                if(GUILayout.Button("-"))
+                {
+                    spawner.Options.Options.RemoveAt(i);
+                    break;
+                }
+
+                GUILayout.EndHorizontal();
+            }
+
+            if (GUILayout.Button("+"))
+            {
+                spawner.Options.Options.Add(new RandomUtilities.WeightedOption<GameObject>(null, 0.5f));
             }
         }
 

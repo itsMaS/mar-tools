@@ -12,7 +12,7 @@ namespace MarTools
         [System.Serializable]
         public class WeightedList<T>
         {
-            public List<WeightedOption<T>> Options;
+            public List<WeightedOption<T>> Options = new List<WeightedOption<T>>();
         }
     
         [System.Serializable]
