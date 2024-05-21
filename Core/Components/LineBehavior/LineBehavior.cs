@@ -175,6 +175,7 @@ namespace MarTools
     
         private float gridSize => EditorPrefs.GetFloat("GridSize", 5);
         private bool snap => EditorPrefs.GetBool("Snapping", false);
+        private bool flat => EditorPrefs.GetBool("Flat", true);
     
     
         private void OnEnable()
@@ -193,7 +194,10 @@ namespace MarTools
             lineDrawer.lineColor = EditorGUILayout.ColorField("Color", lineDrawer.lineColor);
             lineDrawer.smoothing = EditorGUILayout.IntSlider("Smoothing", lineDrawer.smoothing, 0, 10);
             lineDrawer.looping = EditorGUILayout.Toggle("Looping", lineDrawer.looping);
-            
+
+            bool newFlatSetting = EditorGUILayout.Toggle("Flat", flat);
+            EditorPrefs.SetBool("Flat", newFlatSetting);
+
             float newGridSize = EditorGUILayout.FloatField("Grid size", gridSize);
             EditorPrefs.SetFloat("GridSize",newGridSize);
     
@@ -383,10 +387,23 @@ namespace MarTools
                     EditorGUI.BeginChangeCheck();
     
                     Handles.color = Color.blue;
-                    Vector3 newPoint = Handles.FreeMoveHandle(oldPoint, HandleUtility.GetHandleSize(oldPoint) * 0.1f, Vector3.one, Handles.RectangleHandleCap);
+
+                    Vector3 newPoint = Vector3.zero;
+
+                    if(flat)
+                    {
+                        newPoint = Handles.FreeMoveHandle(oldPoint, HandleUtility.GetHandleSize(oldPoint) * 0.1f, Vector3.one, Handles.RectangleHandleCap);
+                    }
+                    else
+                    {
+                        newPoint = Handles.PositionHandle(oldPoint, Quaternion.identity);
+                    }
                     Vector3 newPointLocal = lineDrawer.transform.InverseTransformPoint(newPoint);
     
-                    newPointLocal = newPointLocal.MaskY(0);
+                    if(flat)
+                    {
+                        newPointLocal = newPointLocal.MaskY(0);
+                    }
     
                     if (EditorGUI.EndChangeCheck())
                     {
