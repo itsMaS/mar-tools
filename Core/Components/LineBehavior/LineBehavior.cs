@@ -53,9 +53,6 @@ namespace MarTools
             Gizmos.color = lineColor;
             List<Vector3> points = smoothWorldPoints;
     
-            //Handles.color = lineColor;
-            //Handles.DrawAAPolyLine(lineWidth, points.ToArray());
-    
             for (int i = 1; i < points.Count; i++)
             {
                 Vector3 current = points[i];
@@ -78,45 +75,9 @@ namespace MarTools
                 return controlPoints;
             }
     
-            // Ensure that we can loop the points by adding the first two points to the end of the list
-    
-            //if(looping)
-            //{
-            //    controlPoints.Add(cpoints.First());
-            //    controlPoints.Insert(0, cpoints.Last());
-            //    controlPoints.Insert(0, cpoints.Last());
-            //}
-            //else
-            //{
-            //    controlPoints.Add(cpoints.Last());
-            //    controlPoints.Insert(0, cpoints.First());
-            //}
-    
-    
             List<Vector3> smoothPoints = new List<Vector3>();
             if (controlPoints.Count < 2)
                 return smoothPoints; // Not enough points to create a smooth path.
-
-            //for (int index = 0; index < controlPoints.Count - 3; index++)
-            //{
-            //    Vector3 p0 = controlPoints[index];
-            //    Vector3 p1 = controlPoints[index + 1];
-            //    Vector3 p2 = controlPoints[index + 2];
-            //    Vector3 p3 = controlPoints[index + 3];
-
-            //    for (int i = 1; i <= smoothness; i++)
-            //    {
-            //        float t = i / (float)smoothness;
-            //        float t2 = t * t;
-            //        float t3 = t2 * t;
-            //        Vector3 position = 0.5f *
-            //            ((2.0f * p1) +
-            //            (-p0 + p2) * t +
-            //            (2.0f * p0 - 5.0f * p1 + 4f * p2 - p3) * t2 +
-            //            (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
-            //        smoothPoints.Add(position);
-            //    }
-            //}
 
             (Vector3, Vector3)[] Tangents = new (Vector3, Vector3)[controlPoints.Count];
             for (int i = 0; i < controlPoints.Count; i++)
@@ -149,9 +110,6 @@ namespace MarTools
                 Vector3 p1 = controlPoints[ind1];
                 Vector3 p2 = controlPoints[ind2];
 
-                Debug.DrawLine(p1, Tangents[ind1].Item1, Color.green);
-                Debug.DrawLine(p1, Tangents[ind1].Item2, Color.red);
-
                 var tan1 = Tangents[ind1];
                 var tan2 = Tangents[ind2];
 
@@ -162,12 +120,6 @@ namespace MarTools
                     float t = (float)j / (smoothness-1);
 
                     smoothPoints.Add(BezierCurve(t, p1, tan1.Item2, tan2.Item1, p2));
-
-                    //Vector3 t1 = Vector3.Lerp(p1, tan2.Item2, t);
-                    //Vector3 t2 = Vector3.Lerp(tan1.Item1, p2, t);
-
-                    //Vector3 p = Vector3.Lerp(t1, t2, t);
-                    //smoothPoints.Add(p);
                 }
             }
 
@@ -232,10 +184,15 @@ namespace MarTools
         internal void UpdateShape()
         {
             if (!autoUpdate) return;
-            foreach (var item in GetComponentsInChildren<LineBehaviorReceiver>())
+            foreach (var item in GetComponentsInChildren<LineBehaviorSpawner>())
             {
-                item.UpdateEditor();
+                item.UpdateShape();
             }
+        }
+
+        public bool IsPointInsideShape(Vector3 point)
+        {
+            return Utilities.IsPointInside(smoothWorldPoints, point);
         }
     }
 
@@ -356,7 +313,6 @@ namespace MarTools
 
                 Handles.DrawWireDisc(position, Vector3.up, 0.1f);
                 Handles.DrawWireDisc(position.MaskY(0), Vector3.up, 0.1f);
-
                 Handles.DrawDottedLine(position, position.MaskY(0), 2f);
             }
 
@@ -374,7 +330,7 @@ namespace MarTools
 
         private void DrawGrid()
         {
-            int amount = 30;
+            int amount = 100;
             float length = amount * gridSize * 2;
             for (int i = -amount; i < amount; i++)
             {
@@ -422,12 +378,8 @@ namespace MarTools
                 }
     
                 int insertIndex = Mathf.Max(minIndex1, minIndex2);
-                if(Mathf.Min(minIndex1, minIndex2) == 0)
-                {
-                    insertIndex = 0;
-                }
-    
                 int removeIndex = 0;
+
     
                 if(localPoints.Count > 0)
                 {
@@ -435,6 +387,11 @@ namespace MarTools
                     removeIndex = localPoints.FindIndex(item => Vector3.Distance(cursorWorldPosition, item) == minDistance);
                 }
     
+                if(insertIndex == localPoints.Count-1)
+                {
+                    insertIndex = removeIndex;
+                    if (removeIndex == localPoints.Count - 1) insertIndex++;
+                }
     
                 if(localPoints.Count > 0 && minIndex2 >= 0 && minIndex1 >= 0)
                 {
@@ -553,12 +510,6 @@ namespace MarTools
                 Vector3 nearestPointOnLine = lineStart + projectionFactor * lineVector;
                 return Vector3.Distance(point, nearestPointOnLine);
             }
-        }
-
-
-        private void DataChanged()
-        {
-            Debug.Log("Data Changed");
         }
     }
 #endif
