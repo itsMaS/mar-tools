@@ -8,6 +8,7 @@ namespace MarTools
     using UnityEngine.Events;
 #if UNITY_EDITOR
     using UnityEditor;
+    using UnityEngine.UIElements;
 #endif
 
     [SelectionBase]
@@ -20,6 +21,8 @@ namespace MarTools
         public Color lineColor = Color.white;
         [SerializeField]
         public int smoothing = 5;
+        [SerializeField]
+        public float smoothingLength = 1;
         [SerializeField]
         public bool looping = false;
         [SerializeField]
@@ -77,47 +80,115 @@ namespace MarTools
     
             // Ensure that we can loop the points by adding the first two points to the end of the list
     
-            if(looping)
-            {
-                controlPoints.Add(cpoints.First());
-                controlPoints.Insert(0, cpoints.Last());
-                controlPoints.Insert(0, cpoints.Last());
-            }
-            else
-            {
-                controlPoints.Add(cpoints.Last());
-                controlPoints.Insert(0, cpoints.First());
-            }
+            //if(looping)
+            //{
+            //    controlPoints.Add(cpoints.First());
+            //    controlPoints.Insert(0, cpoints.Last());
+            //    controlPoints.Insert(0, cpoints.Last());
+            //}
+            //else
+            //{
+            //    controlPoints.Add(cpoints.Last());
+            //    controlPoints.Insert(0, cpoints.First());
+            //}
     
     
             List<Vector3> smoothPoints = new List<Vector3>();
             if (controlPoints.Count < 2)
                 return smoothPoints; // Not enough points to create a smooth path.
-    
-            for (int index = 0; index < controlPoints.Count - 3; index++)
+
+            //for (int index = 0; index < controlPoints.Count - 3; index++)
+            //{
+            //    Vector3 p0 = controlPoints[index];
+            //    Vector3 p1 = controlPoints[index + 1];
+            //    Vector3 p2 = controlPoints[index + 2];
+            //    Vector3 p3 = controlPoints[index + 3];
+
+            //    for (int i = 1; i <= smoothness; i++)
+            //    {
+            //        float t = i / (float)smoothness;
+            //        float t2 = t * t;
+            //        float t3 = t2 * t;
+            //        Vector3 position = 0.5f *
+            //            ((2.0f * p1) +
+            //            (-p0 + p2) * t +
+            //            (2.0f * p0 - 5.0f * p1 + 4f * p2 - p3) * t2 +
+            //            (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
+            //        smoothPoints.Add(position);
+            //    }
+            //}
+
+            (Vector3, Vector3)[] Tangents = new (Vector3, Vector3)[controlPoints.Count];
+            for (int i = 0; i < controlPoints.Count; i++)
             {
-                Vector3 p0 = controlPoints[index];
-                Vector3 p1 = controlPoints[index + 1];
-                Vector3 p2 = controlPoints[index + 2];
-                Vector3 p3 = controlPoints[index + 3];
-    
-                for (int i = 1; i <= smoothness; i++)
+                int next = (i + 1) % controlPoints.Count;
+                int previous = (i - 1 + controlPoints.Count) % controlPoints.Count;
+
+
+                Vector3 t1 = (controlPoints[next] - controlPoints[i]);
+                Vector3 t2 = (controlPoints[previous] - controlPoints[i]);
+
+
+                // HACK WITH THE ANGLE TO FLIP TANGENTS
+                float angle = Vector3.SignedAngle(t1, t2, Vector3.up);
+                Vector3 n = (Vector3.Cross(Vector3.Slerp(t1, t2, 0.5f), angle >= -180 && angle < 0 ? Vector3.up : Vector3.down).normalized * smoothingLength);
+
+                if(!looping)
                 {
-                    float t = i / (float)smoothness;
-                    float t2 = t * t;
-                    float t3 = t2 * t;
-                    Vector3 position = 0.5f *
-                        ((2.0f * p1) +
-                        (-p0 + p2) * t +
-                        (2.0f * p0 - 5.0f * p1 + 4f * p2 - p3) * t2 +
-                        (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
-                    smoothPoints.Add(position);
+                    if (i == 0 || i == controlPoints.Count -1) n = Vector3.zero;
+                }
+                Tangents[i] = (controlPoints[i] + n, controlPoints[i] - n);
+            }
+
+
+            for (int i = 0; i < controlPoints.Count; i++)
+            {
+                int ind1 = i;
+                int ind2 = (i + 1) % controlPoints.Count;
+
+                Vector3 p1 = controlPoints[ind1];
+                Vector3 p2 = controlPoints[ind2];
+
+                Debug.DrawLine(p1, Tangents[ind1].Item1, Color.green);
+                Debug.DrawLine(p1, Tangents[ind1].Item2, Color.red);
+
+                var tan1 = Tangents[ind1];
+                var tan2 = Tangents[ind2];
+
+                if (!looping && i == controlPoints.Count - 1) continue;
+
+                for (int j = 0; j < smoothness; j++)
+                {
+                    float t = (float)j / (smoothness-1);
+
+                    smoothPoints.Add(BezierCurve(t, p1, tan1.Item2, tan2.Item1, p2));
+
+                    //Vector3 t1 = Vector3.Lerp(p1, tan2.Item2, t);
+                    //Vector3 t2 = Vector3.Lerp(tan1.Item1, p2, t);
+
+                    //Vector3 p = Vector3.Lerp(t1, t2, t);
+                    //smoothPoints.Add(p);
                 }
             }
 
-            if(looping)
-                smoothPoints.Add(smoothPoints.First());
             return smoothPoints;
+        }
+
+        Vector3 BezierCurve(float t, Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3)
+        {
+            float u = 1 - t;
+            float tt = t * t;
+            float uu = u * u;
+            float uuu = uu * u;
+            float ttt = tt * t;
+
+            // p0, p1, p2, and p3 are control points for the Bezier curve
+            Vector3 p = uuu * p0; // Start point influenced by p0
+            p += 3 * uu * t * p1; // Control point, pulling towards p1
+            p += 3 * u * tt * p2; // Control point, pulling towards p2
+            p += ttt * p3; // End point influenced by p3
+
+            return p;
         }
 
         internal void Modified()
@@ -178,8 +249,9 @@ namespace MarTools
         private float gridSize => EditorPrefs.GetFloat("GridSize", 5);
         private bool snap => EditorPrefs.GetBool("Snapping", false);
         private bool flat => EditorPrefs.GetBool("Flat", true);
-    
-    
+
+        private float lastHeight = 0;
+
         private void OnEnable()
         {
             lineDrawer = target as LineBehavior;
@@ -197,6 +269,9 @@ namespace MarTools
             lineDrawer.smoothing = EditorGUILayout.IntSlider("Smoothing", lineDrawer.smoothing, 0, 30);
             lineDrawer.looping = EditorGUILayout.Toggle("Looping", lineDrawer.looping);
             lineDrawer.autoUpdate = EditorGUILayout.Toggle("Auto Update", lineDrawer.autoUpdate);
+            lineDrawer.smoothingLength = EditorGUILayout.FloatField("Smoothing length", lineDrawer.smoothingLength);
+
+            lastHeight = EditorGUILayout.FloatField("Height", lastHeight);
 
             bool newFlatSetting = EditorGUILayout.Toggle("Flat", flat);
             EditorPrefs.SetBool("Flat", newFlatSetting);
@@ -241,13 +316,13 @@ namespace MarTools
                 lineDrawer.UpdateShape();
             }
 
-
-            Plane plane = new Plane(Vector3.up, 0);
-            Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
-            if(plane.Raycast(ray, out float distance))
+            if(Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.R)
             {
-                cursorWorldPosition = ray.GetPoint(distance);
+                EditorPrefs.SetBool("Flat", !flat);
             }
+
+ 
+
     
             if (Event.current.control && Event.current.type == EventType.KeyDown)
             {
@@ -268,6 +343,33 @@ namespace MarTools
     
             Handles.DrawAAPolyLine(2, localPoints.ToArray());
 
+            Plane plane = new Plane(Vector3.up, -lastHeight);
+            Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
+            if (plane.Raycast(ray, out float distance))
+            {
+                cursorWorldPosition = ray.GetPoint(distance);
+            }
+
+            foreach (var item in lineDrawer.points)
+            {
+                Vector3 position = lineDrawer.transform.TransformPoint(item);
+
+                Handles.DrawWireDisc(position, Vector3.up, 0.1f);
+                Handles.DrawWireDisc(position.MaskY(0), Vector3.up, 0.1f);
+
+                Handles.DrawDottedLine(position, position.MaskY(0), 2f);
+            }
+
+
+            Vector3 real = cursorWorldPosition;
+            Handles.color = Color.white;
+            Handles.DrawWireDisc(real, Vector3.up, 0.2f);
+
+            Vector3 ground = real.MaskY(0);
+            Handles.color = Color.white * 0.5f;
+            Handles.DrawWireDisc(ground, Vector3.up, 0.2f);
+
+            Handles.DrawDottedLine(real, ground, 0.5f);
         }
 
         private void DrawGrid()
@@ -354,7 +456,7 @@ namespace MarTools
                 {
                     if (Event.current.button == 0)
                     {
-                        Vector3 insertPoint = lineDrawer.transform.InverseTransformPoint(cursorWorldPosition).MaskY(Vector3.Lerp(lineDrawer.points[minIndex1], lineDrawer.points[minIndex2], 0.5f).y);
+                        Vector3 insertPoint = lineDrawer.transform.InverseTransformPoint(cursorWorldPosition);
                         if(snap)
                         {
                             insertPoint = insertPoint.Snap(gridSize);
@@ -382,10 +484,10 @@ namespace MarTools
             }
             else
             {
-                List<Vector3> localPoints = lineDrawer.worldPoints;
-                for (int i = 0; i < localPoints.Count; i++)
+                List<Vector3> worldPoints = lineDrawer.worldPoints;
+                for (int i = 0; i < worldPoints.Count; i++)
                 {
-                    Vector3 oldPoint = localPoints[i];
+                    Vector3 oldPoint = worldPoints[i];
     
                     EditorGUI.BeginChangeCheck();
     
@@ -395,7 +497,8 @@ namespace MarTools
 
                     if(flat)
                     {
-                        newPoint = Handles.FreeMoveHandle(oldPoint, HandleUtility.GetHandleSize(oldPoint) * 0.1f, Vector3.one, Handles.RectangleHandleCap);
+                        Handles.FreeMoveHandle(oldPoint, HandleUtility.GetHandleSize(oldPoint) * 0.1f, Vector3.one, Handles.RectangleHandleCap);
+                        newPoint = cursorWorldPosition;
                     }
                     else
                     {
@@ -403,13 +506,10 @@ namespace MarTools
                     }
                     Vector3 newPointLocal = lineDrawer.transform.InverseTransformPoint(newPoint);
     
-                    if(flat)
-                    {
-                        newPointLocal = newPointLocal.MaskY(0);
-                    }
-    
                     if (EditorGUI.EndChangeCheck())
                     {
+
+                        newPoint.MaskY(lastHeight);
                         if(snap)
                         {
                             newPointLocal = newPointLocal.Snap(gridSize);

@@ -8,7 +8,7 @@ namespace MarTools
     // Runtime component to store points
     [RequireComponent(typeof(LineRenderer))]
     [ExecuteAlways]
-    public class LineRendererDrawer : MonoBehaviour
+    public class LineRendererLineBehavior : MonoBehaviour
     {
         public float verticalTilling = 10;
     
@@ -48,7 +48,7 @@ namespace MarTools
     
     #if UNITY_EDITOR
     // Editor script to draw handles
-    [CustomEditor(typeof(LineRendererDrawer))]
+    [CustomEditor(typeof(LineRendererLineBehavior))]
     public class PointsHolderEditor : Editor
     {
     }
