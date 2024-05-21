@@ -15,6 +15,7 @@ namespace MarTools
     {
         public UnityEvent OnModified;
 
+        public bool autoUpdate = true;
         [SerializeField]
         public Color lineColor = Color.white;
         [SerializeField]
@@ -39,7 +40,7 @@ namespace MarTools
             return Utilities.GetPositionsAndNormals(smoothWorldPoints, distanceBetweenPoints, offset);
         }
 
-        public (Vector3, Vector3) GetPositionAndNormalAt(float t)
+        public (Vector3, (Vector3, Vector3)) GetPositionAndNormalAt(float t)
         {
             return smoothWorldPoints.GetPointAndNormalAlongPath(t);
         }
@@ -159,6 +160,7 @@ namespace MarTools
 
         internal void UpdateShape()
         {
+            if (!autoUpdate) return;
             foreach (var item in GetComponentsInChildren<LineBehaviorReceiver>())
             {
                 item.UpdateEditor();
@@ -192,8 +194,9 @@ namespace MarTools
         public override void OnInspectorGUI()
         {
             lineDrawer.lineColor = EditorGUILayout.ColorField("Color", lineDrawer.lineColor);
-            lineDrawer.smoothing = EditorGUILayout.IntSlider("Smoothing", lineDrawer.smoothing, 0, 10);
+            lineDrawer.smoothing = EditorGUILayout.IntSlider("Smoothing", lineDrawer.smoothing, 0, 30);
             lineDrawer.looping = EditorGUILayout.Toggle("Looping", lineDrawer.looping);
+            lineDrawer.autoUpdate = EditorGUILayout.Toggle("Auto Update", lineDrawer.autoUpdate);
 
             bool newFlatSetting = EditorGUILayout.Toggle("Flat", flat);
             EditorPrefs.SetBool("Flat", newFlatSetting);
@@ -351,7 +354,7 @@ namespace MarTools
                 {
                     if (Event.current.button == 0)
                     {
-                        Vector3 insertPoint = lineDrawer.transform.InverseTransformPoint(cursorWorldPosition);
+                        Vector3 insertPoint = lineDrawer.transform.InverseTransformPoint(cursorWorldPosition).MaskY(Vector3.Lerp(lineDrawer.points[minIndex1], lineDrawer.points[minIndex2], 0.5f).y);
                         if(snap)
                         {
                             insertPoint = insertPoint.Snap(gridSize);

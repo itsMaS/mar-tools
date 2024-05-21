@@ -63,6 +63,8 @@ namespace MarTools
             OutBack,
             Pulse,
             OutBounce,
+            OutQuad,
+            InQuad,
         }
         
         public static Dictionary<Ease, Func<float, float>> Eases = new Dictionary<Ease, Func<float, float>>
@@ -73,8 +75,20 @@ namespace MarTools
             {Ease.OutBack, t1 => OutBack(t1)},
             {Ease.Pulse, t1 => Pulse(t1)},
             {Ease.OutBounce, t1 => OutBounce(t1)},
+            {Ease.OutQuad, t1 => OutQuad(t1) },
+            {Ease.InQuad, t1 => InQuad(t1) },
         };
-        
+
+        private static float InQuad(float t)
+        {
+            return t * t;
+        }
+
+        private static float OutQuad(float t)
+        {
+            return t * (2 - t);
+        }
+
         public static float Linear(float t)
         {
             return t;
@@ -378,12 +392,12 @@ namespace MarTools
 
         // This method assumes that path is a list of points forming a polyline
         // and t is the normalized position along the path (0=start, 1=end)
-        public static (Vector3 point, Vector3 normal) GetPointAndNormalAlongPath(this List<Vector3> path, float t)
+        public static (Vector3 point, (Vector3 forward, Vector3 right)) GetPointAndNormalAlongPath(this List<Vector3> path, float t)
         {
             if (path == null || path.Count < 2)
             {
                 Debug.LogError("Invalid path data.");
-                return (Vector3.zero, Vector3.up); // Return up vector as default normal in error case
+                return (Vector3.zero, (Vector3.forward, Vector3.right)); // Return up vector as default normal in error case
             }
 
             // Clamp t to be between 0 and 1
@@ -420,12 +434,12 @@ namespace MarTools
                     // Assuming the path is generally horizontal, a perpendicular vector in the plane can be a normal
                     Vector3 normal = Vector3.Cross(tangent, Vector3.up).normalized;
 
-                    return (pointOnSegment, normal);
+                    return (pointOnSegment, (tangent, normal));
                 }
             }
 
             // If we're at the end of the path
-            return (path[path.Count - 1], Vector3.up);
+            return (path[path.Count - 1], (Vector3.forward, Vector3.right));
         }
     }
 }
