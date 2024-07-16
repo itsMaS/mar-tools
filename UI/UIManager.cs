@@ -210,7 +210,7 @@ namespace MarTools
         {
             if(selected && !selected.gameObject.activeInHierarchy)
             {
-                selected = null;
+                DeselectButton(selected);
             }
 
             bool canMouseBeUsed = true;

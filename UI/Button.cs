@@ -23,8 +23,13 @@ namespace MarTools
 
         public UIManager manager { get; private set; }
 
+        private Action onEnabledAction = null;
+
         private void OnEnable()
         {
+            onEnabledAction?.Invoke();
+            onEnabledAction = null;
+
             manager = GetComponentInParent<UIManager>();
             if(!manager)
             {
@@ -44,7 +49,17 @@ namespace MarTools
     
         public void Deselect()
         {
-            OnDeselected.Invoke();
+            // Hack workaround since Unity does not execute UnityEvents from disabled objects and disabled buttons cannot properly execute the deselection events,
+            // that's why this object buffers it's deselection event to execute at the time it is enabled again
+            // !!!! MIGHT CAUSE SOME STRANGE BEHAVIOR !!!!
+            if(!gameObject.activeInHierarchy)
+            {
+                onEnabledAction += () => OnDeselected.Invoke();
+            }
+            else
+            {
+                OnDeselected.Invoke();
+            }
         }
     
         public void Click()

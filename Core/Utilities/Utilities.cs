@@ -31,7 +31,7 @@ namespace MarTools
             onComplete?.Invoke();
         }
         
-        public static T FindClosest<T>(this IEnumerable<T> collection, Vector3 target, Func<T, Vector2> PositionFunction, out float closestDistance)
+        public static T FindClosest<T>(this IEnumerable<T> collection, Vector3 target, Func<T, Vector3> PositionFunction, out float closestDistance)
         {
             closestDistance = float.MaxValue;
             T closestElement = collection.First();
