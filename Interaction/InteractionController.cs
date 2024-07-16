@@ -21,6 +21,7 @@ namespace MarTools
         [SerializeField] Transform raycastPosition;
         [SerializeField] float raycastDistance = 10;
         [SerializeField] float raycastWidth = 5;
+        [SerializeField] LayerMask interactionBlockMask;
     
         public Interactable hovered { get; private set; }
         public Interactable interactable { get; private set; }
@@ -51,7 +52,7 @@ namespace MarTools
     
         private void Update()
         {
-            if(interactable && !interactable.available)
+            if(interactable && !interactable.CanBeInteracted(this))
             {
                 StopInteract();
             }
@@ -74,7 +75,7 @@ namespace MarTools
                 return;
             }
     
-            TryCastFirst(out Interactable newHovered, raycastDistance, raycastWidth, item => item.available);
+            TryCastFirst(out Interactable newHovered, raycastDistance, raycastWidth, item => item.CanBeInteracted(this));
     
             if(newHovered != hovered)
             {

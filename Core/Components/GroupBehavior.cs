@@ -7,15 +7,19 @@ namespace MarTools
     using UnityEngine.Events;
     #if UNITY_EDITOR
     using UnityEditor;
-    #endif
+#endif
     public class GroupBehavior : MonoBehaviour
     {
+        public UnityEvent OnThisActivated;
         public UnityEvent<GroupBehavior> OnAnyOtherActivated;
         [HideInInspector] public string groupID = "";
+
+        [Tooltip("When this option is available AnyOtherActivated event will only work on siblings of this gameobject")]
+        public bool limitScopeToSiblings = true;
     
         public void Activate()
         {
-            var groupObjects = FindObjectsOfType<GroupBehavior>().Where(item => item.groupID == groupID);
+            var groupObjects = FindObjectsOfType<GroupBehavior>().Where(item => item.groupID == groupID && (!limitScopeToSiblings || item.transform.parent == transform.parent));
             foreach (var groupObject in groupObjects) 
             {
                 if(groupObject != this)
@@ -23,6 +27,8 @@ namespace MarTools
                     groupObject.ActivatedByOther(this);
                 }
             }
+
+            OnThisActivated.Invoke();
         }
     
         private void ActivatedByOther(GroupBehavior origin)
@@ -85,11 +91,17 @@ namespace MarTools
             {
                 script.groupID = GroupIDs[selection];
     
-                var objects = FindObjectsOfType<GroupBehavior>().ToList().Where(item => item.groupID == script.groupID).ToList().ConvertAll(item => item.gameObject);
+                var objects = FindObjectsOfType<GroupBehavior>().ToList().Where(item => item.groupID == script.groupID && 
+                (!script.limitScopeToSiblings || item.transform.parent == script.transform.parent)).ToList().ConvertAll(item => item.gameObject);
                 if (objects.Count > 1 && GUILayout.Button($"Select All [{objects.Count}]"))
                 {
                     Selection.objects = objects.ToArray();
                 }
+            }
+
+            if(GUILayout.Button("Activate"))
+            {
+                script.Activate();
             }
         }
     }

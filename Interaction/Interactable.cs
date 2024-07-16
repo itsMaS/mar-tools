@@ -27,6 +27,11 @@ namespace MarTools
             }
         }
 
+        public bool CanBeInteracted(InteractionController controller)
+        {
+            return available && (availabilityFilter == null || availabilityFilter.Invoke(controller));
+        }
+
         public bool available = true;
         public bool lockOnInteraction = true;
         public float unlocksAfterCooldown = -1;
@@ -41,6 +46,8 @@ namespace MarTools
         public Vector3 promptPosition => transform.position + transform.right * promptOffset.x + transform.up * promptOffset.y + transform.forward * promptOffset.z;
 
         public InteractionController currentInteractor;
+
+        public Func<InteractionController, bool> availabilityFilter { get; set; } = null;
 
         public void Hover(InteractionController controller)
         {

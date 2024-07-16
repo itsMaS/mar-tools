@@ -1,15 +1,11 @@
 namespace MarTools
 {
-    using Palmmedia.ReportGenerator.Core.Reporting.Builders;
-    using System.Collections;
     using System.Collections.Generic;
     using UnityEngine;
+    using System.Linq;
 
 #if UNITY_EDITOR
     using UnityEditor;
-    using System;
-    using JetBrains.Annotations;
-    using System.Linq;
 #endif
 
     public abstract class LineBehaviorSpawner : MonoBehaviour
@@ -55,18 +51,25 @@ namespace MarTools
 
         public string groupName = "";
 
-        public List<SpawnPosition> SpawnPositions = new List<SpawnPosition>();
         public List<LineBehavior> OutsideOf;
         public List<LineBehavior> InsideOf;
 
+        [HideInInspector] public List<SpawnPosition> SpawnPositions = new List<SpawnPosition>();
         [HideInInspector] public RandomUtilities.WeightedList<GameObject> Options = new RandomUtilities.WeightedList<GameObject>();
 
         public void UpdateEditor()
         {
             SpawnPositions = UpdatePositions();
 
-            SpawnPositions.RemoveAll(x => OutsideOf.Any(y => y.IsPointInsideShape(x.position)));
-            SpawnPositions.RemoveAll(x => !InsideOf.Any(y => y.IsPointInsideShape(x.position)));
+            if(OutsideOf != null && OutsideOf.Count > 0)
+            {
+                SpawnPositions.RemoveAll(x => OutsideOf.Any(y => y.IsPointInsideShape(x.position)));
+            }
+
+            if(InsideOf != null && InsideOf.Count > 0)
+            {
+                SpawnPositions.RemoveAll(x => !InsideOf.Any(y => y.IsPointInsideShape(x.position)));
+            }
         }
 
         public GameObject AddElement(GameObject go, Vector3 position, Quaternion rotation, Vector3 scale)
@@ -109,7 +112,10 @@ namespace MarTools
 
         private void OnValidate()
         {
-            UpdateEditor();
+            if(gameObject.activeInHierarchy && enabled)
+            {
+                UpdateEditor();
+            }
         }
 
         public abstract List<SpawnPosition> UpdatePositions();
@@ -121,7 +127,13 @@ namespace MarTools
             ClearElements();
             foreach (var item in SpawnPositions)
             {
-                AddElement(Options.PickRandom(), item.position, item.rotation, item.scale);
+                var option = Options.PickRandom();
+
+                Vector3 rot = item.rotation.eulerAngles + option.transform.localRotation.eulerAngles;
+                Vector3 scale = Vector3.Scale(option.transform.localScale, item.scale);
+                Vector3 position = item.position + option.transform.localPosition;
+
+                AddElement(option, position, Quaternion.Euler(rot), scale);
             }
         }
 

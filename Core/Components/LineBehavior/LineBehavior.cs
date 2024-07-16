@@ -150,11 +150,13 @@ namespace MarTools
 
         internal List<Vector3> GetPointsInsideGrid(float spacing)
         {
+
             float density = 1f/ spacing;
 
             List<Vector3> pointsInside = new List<Vector3>();
             List<Vector3> LocalSmoothed = smoothWorldPoints.ConvertAll<Vector3>(item => transform.InverseTransformPoint(item));
 
+            if (LocalSmoothed.Count < 3) return pointsInside;
             Vector4 bounds = new Vector4(LocalSmoothed.Min(i => i.x), LocalSmoothed.Max(i => i.x), LocalSmoothed.Min(i => i.z), LocalSmoothed.Max(i => i.z));
             Vector2 boundsSize = new Vector2(Mathf.Abs(bounds.x - bounds.y), Mathf.Abs(bounds.z - bounds.w));
 

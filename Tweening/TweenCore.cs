@@ -14,16 +14,27 @@ namespace MarTools
     public abstract class TweenCore : MonoBehaviour
     {
         public UnityEvent OnComplete;
+        public UnityEvent OnPlayForwards;
+        public UnityEvent OnPlayBackwards;
+        public UnityEvent OnStop;
 
         public bool looping = false;
+        public bool yoyo = false;
         public bool playOnEnable = false;
-    
+        public bool relative = true;
+        public Vector2 delayRange = Vector2.zero;
+
         public Utilities.Ease ease = Utilities.Ease.InOutQuad;
+
+        public bool differentEaseBackwards = false;
+        public Utilities.Ease backwardsEase = Utilities.Ease.InOutQuad;
+
         public bool local = true;
         public float duration = 1f;
         private Coroutine coroutine;
         private bool forward = false;
 
+        private float lastInterpolator;
 
         private void Awake()
         {
@@ -32,56 +43,133 @@ namespace MarTools
 
         protected virtual void Reset()
         {
-            
+
         }
 
         private void OnEnable()
         {
-            if (playOnEnable) PlayForward();
-        }
-        public void PlayForward()
-        {
-            forward = true;
-            ResetCoroutine();
-            this.DelayedAction(duration, () => 
+            if (playOnEnable)
             {
-                Complete();
-                if (looping) PlayForward(); 
-            }, t => SetPose(t), true, ease);
+                this.DelayedAction(delayRange.PickRandom(), () => PlayForwards());
+
+            }
+        }
+
+        public void PlayForwards()
+        {
+            PlayForward(false);
         }
         public void PlayBackwards()
         {
+            PlayBackwards(false);
+        }
+        private void PlayForward(bool repeat = false)
+        {
+            float from = 0;
+            float to = 1;
+
+            if (relative) from = lastInterpolator;
+
+            if (!repeat)
+            {
+                OnPlayForwards.Invoke();
+            }
+            forward = true;
+            ResetCoroutine();
+            coroutine = this.DelayedAction(duration, () =>
+            {
+                Complete();
+                if (yoyo)
+                {
+                    PlayBackwards();
+                }
+                else if (looping)
+                {
+                    PlayForward(true);
+                }
+            }, t =>
+            {
+                lastInterpolator = Mathf.LerpUnclamped(from, to, t);
+                SetPose(lastInterpolator);
+            }, true, ease);
+        }
+        private void PlayBackwards(bool repeat = false)
+        {
+            float from = 1;
+            float to = 0;
+
+            if (relative) from = lastInterpolator;
+
+            if (!repeat)
+            {
+                OnPlayBackwards.Invoke();
+            }
             forward = false;
             ResetCoroutine();
-            this.DelayedAction(duration, Complete, t => SetPose(1-t), true, ease);
+            coroutine = this.DelayedAction(duration, () =>
+            {
+                if (looping && yoyo)
+                {
+                    PlayForwards();
+                }
+                else
+                {
+                    Complete();
+                }
+
+            }, t =>
+            {
+                lastInterpolator = Mathf.LerpUnclamped(from,to, t);
+                SetPose(lastInterpolator);
+            }, true, differentEaseBackwards ? backwardsEase : ease);
         }
 
-        public void Toggle()
+        public void Stop()
         {
-            if(forward)
+            OnStop.Invoke();
+            ResetCoroutine();
+        }
+
+        public void Flip()
+        {
+            if (forward)
             {
                 PlayBackwards();
             }
             else
             {
-                PlayForward();
+                PlayForwards();
             }
-
         }
+
+        public void Toggle()
+        {
+            if (coroutine != null)
+            {
+                Stop();
+            }
+            else
+            {
+                PlayForwards();
+            }
+        }
+
 
         private void Complete()
         {
+            coroutine = null;
             OnComplete.Invoke();
         }
-    
+
         private void ResetCoroutine()
         {
             if (coroutine != null)
             {
                 StopCoroutine(coroutine);
+                coroutine = null;
             }
         }
-    
+
         public abstract void SetPose(float t);
     }
     

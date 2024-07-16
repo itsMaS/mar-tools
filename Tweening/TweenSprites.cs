@@ -13,6 +13,8 @@ namespace MarTools
         {
             if (Sprites == null || Sprites.Count == 0) return;
 
+            t = Mathf.Clamp01(t);
+
             Sprite sprite = Sprites[Mathf.FloorToInt(t*(Sprites.Count-1))];
 
             if(TryGetComponent<Image>(out Image img))

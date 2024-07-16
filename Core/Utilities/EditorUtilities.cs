@@ -1,7 +1,9 @@
 namespace MarTools
 {
+    using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Linq;
     using UnityEditor;
     using UnityEngine;
 
@@ -26,6 +28,34 @@ namespace MarTools
             }
 
             return list;
+        }
+
+
+        public static T DrawToggleGroup<T>(T current, params KeyValuePair<string, T>[] options)
+        {
+            GUILayout.BeginHorizontal(); // Begin a horizontal group
+
+            int selectedIndex = options.ToList().FindIndex(x => x.Value.Equals(current));
+
+            if (selectedIndex < 0) selectedIndex = 1;
+
+            for (int i = 0; i < options.Length; i++)
+            {
+                var previousColor = GUI.color;
+                if (i == selectedIndex) GUI.color = Color.green;
+
+
+                // Render each button and check if it's clicked
+                if (GUILayout.Button($"{options[i].Key}"))
+                {
+                    selectedIndex = i; // Update the selected index if this button is clicked
+                }
+
+                GUI.color = previousColor;
+            }
+            GUILayout.EndHorizontal(); // End the horizontal group
+
+            return options[selectedIndex].Value;
         }
     }
 #endif

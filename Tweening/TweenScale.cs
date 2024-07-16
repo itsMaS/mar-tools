@@ -11,7 +11,7 @@ namespace MarTools
     
         public override void SetPose(float t)
         {
-            transform.localScale = Vector3.one * Mathf.Lerp(startingScale, endingScale, t);
+            transform.localScale = Vector3.one * Mathf.LerpUnclamped(startingScale, endingScale, t);
         }
     }
     
