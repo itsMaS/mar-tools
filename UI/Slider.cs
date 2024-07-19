@@ -1,71 +1,72 @@
 namespace MarTools
 {
-    using System;
-    using System.Collections;
-    using System.Collections.Generic;
     using UnityEngine;
-    using UnityEngine.Events;
+    using UnityEngine.PlayerLoop;
 
-    [RequireComponent(typeof(Button))]
-    public class Slider : MonoBehaviour
+    public class Slider : UIElement
     {
         public enum Type
         {
-            Horizontal,
-            Vertical,
-            Both,
+            Horizontal = 0,
+            Vertical = 1,
         }
 
-        public UnityEvent<Vector2> OnUpdateValue2D;
-        public UnityEvent<float> OnUpdateValue;
+        public Type type = Type.Horizontal;
+        public int valuePositions = 10;
+        public int currentValue { get; private set; }
+        public float normalizedValue => (float)currentValue / valuePositions;
 
-        public Type type;
-        public RectTransform knobTransform;
+        [SerializeField] RectTransform knobTransform;
 
-        public Vector2 value { get; private set; }
-        Button button;
-        private void OnEnable()
+        private void Awake()
         {
-            button = GetComponent<Button>();
-
-            button.OnUpdateCursorPositionNormalized.AddListener(UpdateValue);
+            UpdateKnobPosition();
         }
 
-        public void UpdateValue(Vector2 arg0)
+        protected override void OnNavigateInternal(Vector2 direction)
         {
-            if (!button.manager.holdingSubmit) return;
-
-            value = arg0;
-
-            OnUpdateValue2D.Invoke(value);
-            OnUpdateValue.Invoke(value.x);
-
-            var parent = knobTransform.parent.GetComponent<RectTransform>();
-
-            Vector2 size = parent.sizeDelta;
-            Vector2 anchorPosition = new Vector2(size.x * (arg0.x-0.5f), size.y * (arg0.y-0.5f));
-
-            switch (type)
+            if (type == Type.Horizontal && Mathf.Abs(direction.y) > Mathf.Abs(direction.x)) base.OnNavigateInternal(direction);
+            else if (type == Type.Vertical && Mathf.Abs(direction.x) > Mathf.Abs(direction.y)) base.OnNavigateInternal(direction);
+            else
             {
-                case Type.Horizontal:
-                    anchorPosition.y = 0;
-                    break;
-                case Type.Vertical:
-                    anchorPosition.x = 0;
-                    break;
+                if(type == Type.Horizontal)
+                {
+                    currentValue = direction.x > 0 ? currentValue + 1 : currentValue - 1;
+                }
+                else
+                {
+                    currentValue = direction.y > 0 ? currentValue + 1 : currentValue - 1;
+                }
+                currentValue = Mathf.Clamp(currentValue, 0, valuePositions);
+                UpdateKnobPosition();
             }
-
-            knobTransform.anchoredPosition = anchorPosition;
         }
 
-        public void UpdateValue(float value)
+        private void UpdateKnobPosition()
         {
-            UpdateValue(Vector2.one * value);
+            if(knobTransform != null)
+            {
+                Vector2 size = rectTr.sizeDelta;
+
+                if(type == Type.Horizontal)
+                {
+                    knobTransform.anchoredPosition = new Vector2(Mathf.Lerp(-size.x/2, size.x/2, normalizedValue), knobTransform.anchoredPosition.y);
+                }
+                else
+                {
+                    knobTransform.anchoredPosition = new Vector2(knobTransform.anchoredPosition.x, Mathf.Lerp(-size.y / 2, size.y / 2, normalizedValue));
+                }
+
+            }
         }
 
-        private void OnDisable()
+        private void Update()
         {
-            button.OnUpdateCursorPositionNormalized.RemoveListener(UpdateValue);
+            if (selected && manager.currentNavigationType == UIManager.NavigationType.Pointer && manager.holdingSubmit)
+            {
+                currentValue = Mathf.RoundToInt(cursorPositionNormalizedClamped.x * valuePositions);
+                UpdateKnobPosition();
+            }
         }
     }
 }

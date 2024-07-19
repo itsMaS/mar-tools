@@ -10,18 +10,13 @@ namespace MarTools
     using System;
 #endif
 
-    public class Button : MonoBehaviour
+    public class Button : UIElement
     {
-        public UnityEvent OnSelected;
-        public UnityEvent OnDeselected;
         public UnityEvent OnClick;
         public UnityEvent<Vector2> OnUpdateCursorPositionNormalized;
         public UnityEvent<Vector2> OnUpdateCursorPositionPixel;
     
         [HideInInspector] public Window navigatesTo;
-        public bool navigational = true;
-
-        public UIManager manager { get; private set; }
 
         private Action onEnabledAction = null;
 
@@ -30,38 +25,18 @@ namespace MarTools
             onEnabledAction?.Invoke();
             onEnabledAction = null;
 
-            manager = GetComponentInParent<UIManager>();
             if(!manager)
             {
                 Debug.LogError("Canvas does not contain a UI Manager");
             }
         }
 
-        private void OnDisable()
+        protected override void OnSubmitedInternal()
         {
-            
+            base.OnSubmitedInternal();
+            OnClick.Invoke();
         }
 
-        public void Select()
-        {
-            OnSelected.Invoke();
-        }
-    
-        public void Deselect()
-        {
-            // Hack workaround since Unity does not execute UnityEvents from disabled objects and disabled buttons cannot properly execute the deselection events,
-            // that's why this object buffers it's deselection event to execute at the time it is enabled again
-            // !!!! MIGHT CAUSE SOME STRANGE BEHAVIOR !!!!
-            if(!gameObject.activeInHierarchy)
-            {
-                onEnabledAction += () => OnDeselected.Invoke();
-            }
-            else
-            {
-                OnDeselected.Invoke();
-            }
-        }
-    
         public void Click()
         {
             if (!gameObject.activeInHierarchy) return;

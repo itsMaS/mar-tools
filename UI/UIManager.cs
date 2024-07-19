@@ -32,22 +32,23 @@ namespace MarTools
     
         private GraphicRaycaster graphicRaycaster;
         private EventSystem eventSystem;
-    
-        Button selected;
-        public Button lastNotNull { get; private set; }
-        List<Button> MouseHoveredButtons = new List<Button>();
+
+        public UIElement selected;
+        public UIElement lastNotNull { get; private set; }
+        List<UIElement> MouseHoveredButtons = new List<UIElement>();
     
         //public string lastMap 
         PointerEventData pointerData;
-        Canvas canvas;
-        Vector2 pointerPosition;
+        public Canvas canvas { get; private set; }
 
+        public Vector2 pointerPosition { get; private set; }
         public bool holdingSubmit { get; private set; } = false;
         public Camera cam;
 
 
         public UnityEvent OnSelect;
         public UnityEvent OnSubmit;
+
 
         private void Awake()
         {
@@ -153,38 +154,70 @@ namespace MarTools
             {
                 SelectButton(lastNotNull);
             }
+
     
             Vector2 aim = obj.ReadValue<Vector2>();
-    
-            if(aim.magnitude > 0.01f && selected)
+            selected.Navigate(aim);
+
+        }
+
+        public UIElement GetAdjacent(UIElement origin, Vector2 direction)
+        {
+            Vector3 realDirection = transform.right * direction.x + transform.up * direction.y;
+            Debug.DrawLine(origin.transform.position, origin.transform.position + realDirection * 1000, Color.cyan, 1f);
+
+            var AllPotentialTargets = GetComponentsInChildren<UIElement>().ToList().Where(x => !x.mouseOnly && origin != x);
+
+            AllPotentialTargets = AllPotentialTargets.Where(x =>
             {
-                var other = GetComponentsInChildren<Button>().ToList().Where(item => item != selected && item.navigational).ToList();
+                Vector3 toTarget = x.transform.position - origin.transform.position;
+                float angle = Vector3.Angle(toTarget, realDirection);
 
-                Vector3 aimDirection = aim.x * transform.right + aim.y * transform.up;
-
-                Debug.DrawLine(selected.transform.position, selected.transform.position + aimDirection * 1000, Color.green, 1f);
-
-                foreach (var x in other)
+                float availableAngle = 80;
+                if (angle > availableAngle)
                 {
-                    Vector3 direction = x.transform.position - selected.transform.position;
-                    Debug.DrawLine(selected.transform.position, selected.transform.position + direction, Color.yellow, 0.5f);
+                    Debug.DrawLine(origin.transform.position, x.transform.position, Color.red, 1f);
+                }
+                else
+                {
+                    Debug.DrawLine(origin.transform.position, x.transform.position, Color.yellow, 1f);
                 }
 
-                var directional = other.FindAll(x =>
-                {
-                    Vector3 direction = x.transform.position - selected.transform.position;
-                    Debug.DrawLine(selected.transform.position, selected.transform.position + direction, Color.yellow, 0.5f);
+                return angle <= availableAngle;
+            });
 
-                    return Vector3.Angle(direction, aimDirection) < 45f;
+            if(AllPotentialTargets.Count() > 0)
+            {
+                float maxDistance = AllPotentialTargets.Max(x => Vector3.Distance(x.transform.position, origin.transform.position));
+                AllPotentialTargets = AllPotentialTargets.OrderBy(x =>
+                {
+                    float distance = Vector3.Distance(x.transform.position, origin.transform.position);
+                    float distanceNormalized = distance / maxDistance;
+                    float angle = Vector3.Angle(x.transform.position - origin.transform.position, realDirection);
+
+                    float costToReach = distanceNormalized;
+
+                    return costToReach;
                 });
 
-                if (directional.Count > 0)
-                {
-                    var target = directional.FindClosest(selected.transform.position, x => x.transform.position, out float closestDistance);
-                    SelectButton(target);
-                }
+                var target = AllPotentialTargets.First();
+                Debug.DrawLine(origin.transform.position, target.transform.position, Color.green, 1f);
+                return target;
+            }
+
+            return null;
+        }
+
+        public void MoveSelection(Vector2 direction)
+        {
+            var target = GetAdjacent(selected, direction);
+
+            if(target != null)
+            {
+                SelectButton(target);
             }
         }
+
         private void SubmitStart(InputAction.CallbackContext obj)
         {
             if(obj.control.device != Mouse.current)
@@ -194,9 +227,11 @@ namespace MarTools
 
             holdingSubmit = true;
 
-            if (selected != null)
+            if (selected != null && selected.gameObject.activeInHierarchy)
             {
-                selected.Click();
+                if (obj.control.device == Mouse.current && MouseHoveredButtons.Count == 0) return;
+
+                selected.Submit();
                 OnSubmit.Invoke();
             }
         }
@@ -242,7 +277,7 @@ namespace MarTools
     
                     foreach (RaycastResult result in results)
                     {
-                        Button button = result.gameObject.GetComponent<Button>();
+                        UIElement button = result.gameObject.GetComponent<UIElement>();
                         if (button != null)
                         {
                             MouseHoveredButtons.Add(button);
@@ -254,33 +289,13 @@ namespace MarTools
                 }
             }
 
-            if(selected)
-            {
-                if(selected.TryGetComponent<Image>(out var img))
-                {
-                    Vector2 screenPosition = GetScreenPosition(img.transform.position);
-                    Vector2 diff = pointerPosition - screenPosition;
-
-                    diff.x = Mathf.Clamp(diff.x, -img.rectTransform.sizeDelta.x/2, img.rectTransform.sizeDelta.x/2);
-                    diff.y = Mathf.Clamp(diff.y, -img.rectTransform.sizeDelta.y/2, img.rectTransform.sizeDelta.y/2);
-
-
-                    Vector2 diffNormalized = diff;
-                    diffNormalized.x /= img.rectTransform.sizeDelta.x;
-                    diffNormalized.y /= img.rectTransform.sizeDelta.y;
-                    diffNormalized += Vector2.one * 0.5f;
-
-                    selected.SetCursorPosition(diffNormalized, diff);
-                }
-            }
-
             if(currentNavigationType == NavigationType.Axis && !selected)
             {
-                SelectButton(GetComponentsInChildren<Button>().FirstOrDefault(x => x.navigational));
+                SelectButton(GetComponentsInChildren<UIElement>().FirstOrDefault(x => !x.mouseOnly));
             }
         }
     
-        public void SelectButton(Button button)
+        public void SelectButton(UIElement button)
         {
             if (selected == button) return;
 
@@ -290,7 +305,7 @@ namespace MarTools
             
             if(button != null)
             {
-                if(button.navigational)
+                if(!button.mouseOnly)
                 {
                     lastNotNull = button;
                 }
@@ -299,7 +314,7 @@ namespace MarTools
             }
         }
     
-        public void DeselectButton(Button button)
+        public void DeselectButton(UIElement button)
         {
             if(button != null)
             {
@@ -316,7 +331,7 @@ namespace MarTools
 
                 if(type == NavigationType.Axis && selected == null)
                 {
-                    SelectButton(GetComponentsInChildren<Button>(false).FirstOrDefault(x => x.navigational));
+                    SelectButton(GetComponentsInChildren<UIElement>(false).FirstOrDefault(x => !x.mouseOnly));
                 }
             }
         }

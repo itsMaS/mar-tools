@@ -441,5 +441,12 @@ namespace MarTools
             // If we're at the end of the path
             return (path[path.Count - 1], (Vector3.forward, Vector3.right));
         }
+
+        public static Vector2 Project(Vector2 a, Vector2 b)
+        {
+            float dotProduct = Vector2.Dot(a, b);
+            float magnitudeB = b.sqrMagnitude;
+            return (dotProduct / magnitudeB) * b;
+        }
     }
 }

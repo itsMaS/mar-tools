@@ -17,7 +17,7 @@ namespace MarTools
         public UnityEvent OnOpened;
         public UnityEvent OnClosed;
     
-        [HideInInspector] public Button firstSelectedButton;
+        [HideInInspector] public UIElement firstSelectedButton;
     
         public WindowManager manager { get; private set; }
     
@@ -75,7 +75,7 @@ namespace MarTools
             base.OnInspectorGUI();
             var script = (Window)target;
     
-            var buttons = script.GetComponentsInChildren<Button>(true).ToList();
+            var buttons = script.GetComponentsInChildren<UIElement>(true).ToList();
             
             if(!Application.isPlaying && buttons.Count > 0)
             {
