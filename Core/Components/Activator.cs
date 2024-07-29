@@ -3,18 +3,38 @@ namespace MarTools
     using UnityEngine;
     using UnityEngine.Events;
 
+#if UNITY_EDITOR
+    using UnityEditor;
+#endif
+
     public class Activator : MonoBehaviour
     {
         public UnityEvent OnActivated;
         public UnityEvent OnDeactivated;
-        
+
+        bool state = false;
+
         public void Activate()
         {
+            state = true;
             OnActivated.Invoke();
         }
         public void Deactivate()
         {
+            state = false;
             OnDeactivated.Invoke();
+        }
+
+        public void Toggle()
+        {
+            if(state)
+            {
+                Deactivate();
+            }
+            else
+            {
+                Activate();
+            }
         }
 
         /// <summary>
@@ -33,4 +53,11 @@ namespace MarTools
             }
         }
     }
+
+#if UNITY_EDITOR
+    public class ActivatorEditor : Editor
+    {
+
+    }
+#endif
 }

@@ -6,7 +6,7 @@ namespace MarTools
     using UnityEngine.Events;
     using UnityEngine.UIElements;
     
-    public class CompositeActivation : MonoBehaviour
+    public class CompositeActivator : MonoBehaviour
     {
         public UnityEvent OnActivate;
         public UnityEvent OnDeactivate;

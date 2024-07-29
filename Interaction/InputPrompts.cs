@@ -41,11 +41,10 @@ namespace MarTools
 
         public Camera cam;
     
-        public Interactable hoveredInteractable;
+        public Interactable hoveredInteractable { get; private set; }
         [SerializeField] RectTransform promptTr;
-        [SerializeField] RectTransform maskTr;
         [SerializeField] Image interactionFillImage;
-        [SerializeField] TextMeshProUGUI interactionText;
+        [SerializeField] Image lockImage;
     
         public UnityEvent<Interactable> OnHover;
         public UnityEvent<Interactable> OnUnhover;
@@ -78,23 +77,17 @@ namespace MarTools
     
         private void LateUpdate()
         {
-            maskTr.anchorMin = new Vector2(cam.rect.x, cam.rect.y);
-            maskTr.anchorMax = new Vector2(cam.rect.x +cam.rect.width, cam.rect.y + cam.rect.height);
-    
             if(hoveredInteractable)
             {
                 UpdatePointPosition();
                 interactionFillImage.fillAmount = hoveredInteractable.interactionProgressNormalized;
+                lockImage.gameObject.SetActive(!hoveredInteractable.IsUnlocked(controller));
             }
         }
     
         private void UpdatePointPosition()
         {
             promptTr.position = cam.WorldToScreenPoint(hoveredInteractable.promptPosition);
-            if(hoveredInteractable.available)
-            {
-                interactionText.SetText(hoveredInteractable.actionText);
-            }
         }
     }
     

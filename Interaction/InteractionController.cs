@@ -18,7 +18,7 @@ namespace MarTools
         public UnityEvent<Interactable, float> OnInteractTick;
 
     
-        [SerializeField] Transform raycastPosition;
+        [SerializeField] public Transform raycastPosition;
         [SerializeField] float raycastDistance = 10;
         [SerializeField] float raycastWidth = 5;
         [SerializeField] LayerMask interactionBlockMask;
@@ -35,9 +35,11 @@ namespace MarTools
             if (hovered)
             {
                 interactable = hovered;
-                hovered.InteractStart(this);
+                if(hovered.InteractStart(this))
+                {
+                    OnInteractStart.Invoke(hovered);
+                }
             }
-            OnInteractStart.Invoke(hovered);
         }
 
         public void StopInteract()
@@ -74,9 +76,25 @@ namespace MarTools
     
                 return;
             }
-    
-            TryCastFirst(out Interactable newHovered, raycastDistance, raycastWidth, item => item.CanBeInteracted(this));
-    
+
+            //TryCastFirst(out Interactable newHovered, interactionBlockMask, raycastDistance, raycastWidth, item => item.CanBeInteracted(this));
+
+            Interactable newHovered = null;
+            foreach (var item in Physics.SphereCastAll(raycastPosition.position, raycastWidth, raycastPosition.forward, raycastDistance).ToList().OrderBy(x => Vector3.Distance(x.point, raycastPosition.position)))
+            {
+                if(item.collider.TryGetComponent<Interactable>(out var inter))
+                {
+                    if (!inter.CanBeInteracted(this)) continue;
+
+                    newHovered = inter;
+                    break;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
             if(newHovered != hovered)
             {
                 if(hovered)
@@ -94,11 +112,11 @@ namespace MarTools
             }
         }
     
-        public List<Interactable> CastFromEye(float range, float width, Func<Interactable, bool> checkFunction = null)
+        public List<Interactable> CastFromEye(float range, float width, LayerMask interactionBlockMask, Func<Interactable, bool> checkFunction = null)
         {
             List<Interactable> Items = new List<Interactable>();
             Debug.DrawLine(raycastPosition.position, raycastPosition.position + raycastPosition.forward * range, Color.yellow);
-            foreach (var t in Physics.SphereCastAll(raycastPosition.transform.position, width, raycastPosition.transform.forward, range))
+            foreach (var t in Physics.SphereCastAll(raycastPosition.transform.position, width, raycastPosition.transform.forward, range, interactionBlockMask))
             {
                 GameObject target = t.rigidbody ? t.rigidbody.gameObject : t.collider.gameObject;
                 if (target.TryGetComponent<Interactable>(out var item) && (checkFunction == null || checkFunction.Invoke(item)))
@@ -109,10 +127,11 @@ namespace MarTools
             return Items;
         }
     
-        public bool TryCastFirst(out Interactable item, float range = 5, float width = 5, Func<Interactable, bool> checkFunction = null)
+        public bool TryCastFirst(out Interactable item, LayerMask interactionBlockMask, float range = 5, float width = 5, Func<Interactable, bool> checkFunction = null)
         {
+
             item = null;
-            var found = CastFromEye(raycastDistance, width, checkFunction);
+            var found = CastFromEye(raycastDistance, width, interactionBlockMask, checkFunction);
             float minDistance = float.MaxValue;
             
             if (found.Count > 0)
@@ -139,6 +158,7 @@ namespace MarTools
     
         private void OnDrawGizmos()
         {
+            Gizmos.DrawLine(raycastPosition.position, raycastPosition.position + raycastPosition.forward * raycastDistance);
             Gizmos.DrawWireSphere(raycastPosition.position + raycastPosition.forward * raycastDistance, raycastWidth);
         }
     }

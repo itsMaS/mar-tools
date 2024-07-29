@@ -14,7 +14,7 @@ namespace MarTools
 
         private List<TabNode> TabNodes = new List<TabNode>();
 
-        private int selectedIndex = 0;
+        public int selectedIndex { get; private set; } = 0;
 
         private void Awake()
         {

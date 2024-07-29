@@ -1,6 +1,7 @@
 namespace MarTools
 {
     using UnityEngine;
+    using UnityEngine.Events;
     using UnityEngine.PlayerLoop;
 
     public class Slider : UIElement
@@ -11,10 +12,14 @@ namespace MarTools
             Vertical = 1,
         }
 
+        public UnityEvent<int, int> OnValueChanged;
+
+
+
         public Type type = Type.Horizontal;
         public int valuePositions = 10;
         public int currentValue { get; private set; }
-        public float normalizedValue => (float)currentValue / valuePositions;
+        public float normalizedValue => (float)currentValue / (valuePositions-1);
 
         [SerializeField] RectTransform knobTransform;
 
@@ -29,15 +34,17 @@ namespace MarTools
             else if (type == Type.Vertical && Mathf.Abs(direction.x) > Mathf.Abs(direction.y)) base.OnNavigateInternal(direction);
             else
             {
+                int newValue = currentValue;
                 if(type == Type.Horizontal)
                 {
-                    currentValue = direction.x > 0 ? currentValue + 1 : currentValue - 1;
+                    newValue = direction.x > 0 ? currentValue + 1 : currentValue - 1;
                 }
                 else
                 {
-                    currentValue = direction.y > 0 ? currentValue + 1 : currentValue - 1;
+                    newValue = direction.y > 0 ? currentValue + 1 : currentValue - 1;
                 }
-                currentValue = Mathf.Clamp(currentValue, 0, valuePositions);
+                newValue = Mathf.Clamp(newValue, 0, valuePositions-1);
+                SetValue(newValue);
                 UpdateKnobPosition();
             }
         }
@@ -64,9 +71,21 @@ namespace MarTools
         {
             if (selected && manager.currentNavigationType == UIManager.NavigationType.Pointer && manager.holdingSubmit)
             {
-                currentValue = Mathf.RoundToInt(cursorPositionNormalizedClamped.x * valuePositions);
-                UpdateKnobPosition();
+                int newValue = Mathf.RoundToInt(cursorPositionNormalizedClamped.x * (valuePositions-1));
+                SetValue(newValue);
             }
+        }
+
+        public void SetValue(int value)
+        {
+            if(value != currentValue)
+            {
+                int oldValue = currentValue;
+                currentValue = value;
+                OnValueChanged.Invoke(oldValue, currentValue);
+            }
+ 
+            UpdateKnobPosition();
         }
     }
 }

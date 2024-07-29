@@ -16,17 +16,8 @@ namespace MarTools
         public UnityEvent<InteractionController> OnInteractionCancelled;
         public UnityEvent<float> OnInteractionTick;
         public UnityEvent<InteractionController> OnInteracted;
+        public UnityEvent<InteractionController> OnInteractFailed;
     
-        public string _actionText = "Interact";
-        
-        public string actionText
-        {
-            get
-            {
-                return _actionText;
-            }
-        }
-
         public bool CanBeInteracted(InteractionController controller)
         {
             return available && (availabilityFilter == null || availabilityFilter.Invoke(controller));
@@ -48,6 +39,9 @@ namespace MarTools
         public InteractionController currentInteractor;
 
         public Func<InteractionController, bool> availabilityFilter { get; set; } = null;
+        public Func<InteractionController, bool> isUnlocked { get; set; } = v => true;
+
+        private Coroutine cooldownCoroutine;
 
         public void Hover(InteractionController controller)
         {
@@ -59,10 +53,24 @@ namespace MarTools
             OnUnhover.Invoke(controller);
         }
     
-        public void InteractStart(InteractionController controller)
+        public bool InteractStart(InteractionController controller)
         {
-            OnInteractStart.Invoke(controller);
-            currentInteractor = controller;
+            if(IsUnlocked(controller))
+            {
+                OnInteractStart.Invoke(controller);
+                currentInteractor = controller;
+                return true;
+            }
+            else
+            {
+                OnInteractFailed.Invoke(controller);
+                return false;
+            }
+        }
+
+        public bool IsUnlocked(InteractionController controller)
+        {
+            return isUnlocked.Invoke(controller);
         }
 
         public void InteractEnd(InteractionController controller)
@@ -79,6 +87,16 @@ namespace MarTools
         public void SetAvailability(bool enabled)
         {
             available = enabled;
+
+            if(!enabled)
+            {
+                if(cooldownCoroutine != null)
+                {
+                    StopCoroutine(cooldownCoroutine);
+                    cooldownCoroutine = null;
+                }
+                unlocksAfterCooldown = -1;
+            }
         }
 
         private void Update()
@@ -93,7 +111,6 @@ namespace MarTools
                 {
                     interactionProgressNormalized = 1;
                 }
-
 
                 if(interactionProgressNormalized >= 1)
                 {
@@ -118,7 +135,7 @@ namespace MarTools
 
                 if(unlocksAfterCooldown > 0)
                 {
-                    this.DelayedAction(unlocksAfterCooldown, () =>
+                    cooldownCoroutine = this.DelayedAction(unlocksAfterCooldown, () =>
                     {
                         SetAvailability(true);
                     });

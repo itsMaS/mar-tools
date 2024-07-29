@@ -1,9 +1,8 @@
 namespace MarTools
 {
-    using System.Collections;
-    using System.Collections.Generic;
     using UnityEngine;
     using UnityEngine.Events;
+    using UnityEngine.InputSystem;
     using UnityEngine.UI;
 
     [RequireComponent(typeof(Image), typeof(RectTransform))]
@@ -102,8 +101,19 @@ namespace MarTools
 
         [Tooltip("Whether this element can only be selected by a mouse")]
         public bool mouseOnly = false;
-
+        public InputActionReference alternativeSubmitAction;
         public bool selected => manager.selected == this;
+
+        private void Start()
+        {
+            if(alternativeSubmitAction != null) 
+            {
+                manager.SubscribeInput(alternativeSubmitAction, x =>
+                {
+                    if (x.phase == InputActionPhase.Performed) Submit();
+                });
+            }
+        }
 
         public void Select()
         {
@@ -142,6 +152,16 @@ namespace MarTools
         protected virtual void OnSubmitedInternal()
         {
             OnSubmit.Invoke();
+        }
+
+        private void OnEnable()
+        {
+            manager.Subscribe(this);
+        }
+
+        private void OnDisable()
+        {
+            manager.Unsubscribe(this);
         }
     }
 }

@@ -7,7 +7,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-[RequireComponent(typeof(MarTools.Button))]
 public class Node : MonoBehaviour
 {
     private List<Node> Children = new List<Node>();
@@ -39,17 +38,20 @@ public class Node : MonoBehaviour
 
             Nodes.Add(node);
 
-            if(SubmitFunction != null)
-                btn.OnClick.AddListener(() => SubmitFunction(element, index, node));
 
             if(InitializeFunction != null)
                 InitializeFunction.Invoke(element, index, node);
 
-            if(SelectFunction != null) 
-                btn.OnSelected.AddListener(() => SelectFunction(element, index, node));
+            if(btn)
+            {
+                if(SubmitFunction != null)
+                    btn.OnClick.AddListener(() => SubmitFunction(element, index, node));
+            
+                if(SelectFunction != null) 
+                    btn.OnSelected.AddListener(() => SelectFunction(element, index, node));
+            }
 
             Children.Add(node);
-
             node.gameObject.SetActive(true);
         }
 
