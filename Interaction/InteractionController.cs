@@ -27,7 +27,8 @@ namespace MarTools
         public Interactable interactable { get; private set; }
         
         public bool active = true;
-    
+
+        private Transform raycastTransform => raycastPosition ? raycastPosition : transform;
 
 
         public void BeginInteract()
@@ -80,7 +81,7 @@ namespace MarTools
             //TryCastFirst(out Interactable newHovered, interactionBlockMask, raycastDistance, raycastWidth, item => item.CanBeInteracted(this));
 
             Interactable newHovered = null;
-            foreach (var item in Physics.SphereCastAll(raycastPosition.position, raycastWidth, raycastPosition.forward, raycastDistance).ToList().OrderBy(x => Vector3.Distance(x.point, raycastPosition.position)))
+            foreach (var item in Physics.SphereCastAll(raycastTransform.position, raycastWidth, raycastTransform.forward, raycastDistance).ToList().OrderBy(x => Vector3.Distance(x.point, raycastTransform.position)))
             {
                 if(item.collider.TryGetComponent<Interactable>(out var inter))
                 {
@@ -112,54 +113,10 @@ namespace MarTools
             }
         }
     
-        public List<Interactable> CastFromEye(float range, float width, LayerMask interactionBlockMask, Func<Interactable, bool> checkFunction = null)
-        {
-            List<Interactable> Items = new List<Interactable>();
-            Debug.DrawLine(raycastPosition.position, raycastPosition.position + raycastPosition.forward * range, Color.yellow);
-            foreach (var t in Physics.SphereCastAll(raycastPosition.transform.position, width, raycastPosition.transform.forward, range, interactionBlockMask))
-            {
-                GameObject target = t.rigidbody ? t.rigidbody.gameObject : t.collider.gameObject;
-                if (target.TryGetComponent<Interactable>(out var item) && (checkFunction == null || checkFunction.Invoke(item)))
-                {
-                    Items.Add(item);
-                }
-            }
-            return Items;
-        }
-    
-        public bool TryCastFirst(out Interactable item, LayerMask interactionBlockMask, float range = 5, float width = 5, Func<Interactable, bool> checkFunction = null)
-        {
-
-            item = null;
-            var found = CastFromEye(raycastDistance, width, interactionBlockMask, checkFunction);
-            float minDistance = float.MaxValue;
-            
-            if (found.Count > 0)
-            {
-                foreach (var f in found)
-                {
-                    if (f == interactable)
-                    {
-                        item = f;
-                        return true;
-                    }
-
-                    float distance = Vector3.Distance(f.transform.position, raycastPosition.position + raycastPosition.forward * range);
-                    if(distance < minDistance)
-                    {
-                        minDistance = distance;
-                        item = f;
-                    }
-                }
-                return true;
-            }
-            return false;
-        }
-    
         private void OnDrawGizmos()
         {
-            Gizmos.DrawLine(raycastPosition.position, raycastPosition.position + raycastPosition.forward * raycastDistance);
-            Gizmos.DrawWireSphere(raycastPosition.position + raycastPosition.forward * raycastDistance, raycastWidth);
+            Gizmos.DrawLine(raycastTransform.position, raycastTransform.position + raycastTransform.forward * raycastDistance);
+            Gizmos.DrawWireSphere(raycastTransform.position + raycastTransform.forward * raycastDistance, raycastWidth);
         }
     }
     
