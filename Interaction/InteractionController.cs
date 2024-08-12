@@ -27,7 +27,8 @@ namespace MarTools
         public Interactable interactable { get; private set; }
         
         public bool active = true;
-    
+
+        private Transform raycastTransform => raycastPosition ? raycastPosition : transform;
 
 
         public void BeginInteract()
