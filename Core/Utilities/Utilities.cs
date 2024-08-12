@@ -1,5 +1,6 @@
 namespace MarTools
 {
+    using Mono.CSharp;
     using System;
     using System.Collections;
     using System.Collections.Generic;
@@ -447,6 +448,19 @@ namespace MarTools
             float dotProduct = Vector2.Dot(a, b);
             float magnitudeB = b.sqrMagnitude;
             return (dotProduct / magnitudeB) * b;
+        }
+
+        // Method to rotate a Vector2 by a specified angle in degrees
+        public static Vector2 Rotate(this Vector2 v, float angleDegrees)
+        {
+            float angleRadians = angleDegrees * Mathf.Deg2Rad; // Convert the angle to radians
+            float cos = Mathf.Cos(angleRadians);
+            float sin = Mathf.Sin(angleRadians);
+
+            float newX = v.x * cos - v.y * sin;
+            float newY = v.x * sin + v.y * cos;
+
+            return new Vector2(newX, newY);
         }
     }
 }

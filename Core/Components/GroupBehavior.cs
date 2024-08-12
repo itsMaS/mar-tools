@@ -19,8 +19,7 @@ namespace MarTools
     
         public void Activate()
         {
-            var groupObjects = FindObjectsOfType<GroupBehavior>().Where(item => item.groupID == groupID && (!limitScopeToSiblings || item.transform.parent == transform.parent));
-            foreach (var groupObject in groupObjects) 
+            foreach (var groupObject in GetGroupElements()) 
             {
                 if(groupObject != this)
                 {
@@ -30,10 +29,24 @@ namespace MarTools
 
             OnThisActivated.Invoke();
         }
+
+        public List<GroupBehavior> GetGroupElements()
+        {
+            var groupObjects = FindObjectsOfType<GroupBehavior>().Where(item => item.groupID == groupID && (!limitScopeToSiblings || item.transform.parent == transform.parent)).ToList();
+            return groupObjects;
+        }
     
         private void ActivatedByOther(GroupBehavior origin)
         {
             OnAnyOtherActivated.Invoke(origin);
+        }
+
+        public static void DeactivateAll(GroupBehavior element)
+        {
+            foreach (var item in element.GetGroupElements())
+            {
+                item.ActivatedByOther(null);
+            }
         }
     }
     

@@ -249,6 +249,11 @@ namespace MarTools
                     lineDrawer.points[i] = lineDrawer.points[i].Snap(gridSize);
                 }
             }
+            if(GUILayout.Button("Reverse points"))
+            {
+                lineDrawer.points.Reverse();
+            }
+
             if (GUILayout.Button("Set pivot to median points"))
             {
                 var worldPositions = lineDrawer.worldPoints;

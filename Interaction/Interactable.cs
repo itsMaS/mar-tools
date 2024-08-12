@@ -6,7 +6,8 @@ namespace MarTools
     using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.Events;
-    
+
+    [SelectionBase]
     public class Interactable : MonoBehaviour
     {
         public UnityEvent<InteractionController> OnHover;
@@ -16,17 +17,8 @@ namespace MarTools
         public UnityEvent<InteractionController> OnInteractionCancelled;
         public UnityEvent<float> OnInteractionTick;
         public UnityEvent<InteractionController> OnInteracted;
+        public UnityEvent<InteractionController> OnInteractFailed;
     
-        public string _actionText = "Interact";
-        
-        public string actionText
-        {
-            get
-            {
-                return _actionText;
-            }
-        }
-
         public bool CanBeInteracted(InteractionController controller)
         {
             return available && (availabilityFilter == null || availabilityFilter.Invoke(controller));
@@ -48,6 +40,9 @@ namespace MarTools
         public InteractionController currentInteractor;
 
         public Func<InteractionController, bool> availabilityFilter { get; set; } = null;
+        public Func<InteractionController, bool> isUnlocked { get; set; } = v => true;
+
+        private Coroutine cooldownCoroutine;
 
         public void Hover(InteractionController controller)
         {
@@ -59,10 +54,26 @@ namespace MarTools
             OnUnhover.Invoke(controller);
         }
     
-        public void InteractStart(InteractionController controller)
+        public bool InteractStart(InteractionController controller)
         {
-            OnInteractStart.Invoke(controller);
-            currentInteractor = controller;
+            if(IsUnlocked(controller))
+            {
+                OnInteractStart.Invoke(controller);
+                currentInteractor = controller;
+
+                if (interactionDuration <= 0) Interacted();
+                return true;
+            }
+            else
+            {
+                OnInteractFailed.Invoke(controller);
+                return false;
+            }
+        }
+
+        public bool IsUnlocked(InteractionController controller)
+        {
+            return isUnlocked.Invoke(controller);
         }
 
         public void InteractEnd(InteractionController controller)
@@ -79,6 +90,28 @@ namespace MarTools
         public void SetAvailability(bool enabled)
         {
             available = enabled;
+
+            if(!enabled)
+            {
+                if(cooldownCoroutine != null)
+                {
+                    StopCoroutine(cooldownCoroutine);
+                    cooldownCoroutine = null;
+                }
+                unlocksAfterCooldown = -1;
+            }
+        }
+
+        public void ToggleAvailability()
+        {
+            if(available)
+            {
+                SetAvailability(false);
+            }
+            else
+            {
+                SetAvailability(true);
+            }
         }
 
         private void Update()
@@ -91,11 +124,10 @@ namespace MarTools
                 }
                 else
                 {
-                    interactionProgressNormalized = 1;
+                    interactionProgressNormalized = 0;
                 }
 
-
-                if(interactionProgressNormalized >= 1)
+                if(interactionProgressNormalized >= 1 && interactionDuration > 0)
                 {
                     Interacted();
                 }
@@ -110,15 +142,13 @@ namespace MarTools
 
         private void Interacted()
         {
-            OnInteracted.Invoke(currentInteractor);
-            
             if(lockOnInteraction)
             {
                 available = false;
 
                 if(unlocksAfterCooldown > 0)
                 {
-                    this.DelayedAction(unlocksAfterCooldown, () =>
+                    cooldownCoroutine = this.DelayedAction(unlocksAfterCooldown, () =>
                     {
                         SetAvailability(true);
                     });
@@ -131,6 +161,7 @@ namespace MarTools
             }
 
             interactionProgressNormalized = Mathf.Clamp01(interactionProgressNormalized);
+            OnInteracted.Invoke(currentInteractor);
         }
 
         private void OnDrawGizmos()

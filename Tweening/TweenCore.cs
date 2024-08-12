@@ -175,6 +175,7 @@ namespace MarTools
     
     #if UNITY_EDITOR
     [CustomEditor(typeof(TweenCore), true)]
+    [CanEditMultipleObjects]
     public class TweenCoreEditor : Editor
     {
         float pose;
@@ -182,14 +183,11 @@ namespace MarTools
     
         public override void OnInspectorGUI()
         {
+            var script = (TweenCore)target;
+            base.OnInspectorGUI();
             if(!Application.isPlaying)
             {
                 float newPose = EditorGUILayout.Slider(pose, 0, 1);
-                
-    
-                base.OnInspectorGUI();
-    
-                var script = (TweenCore)target;
     
                 if(!playing)
                 {
@@ -206,6 +204,21 @@ namespace MarTools
                 if (playing && GUILayout.Button("Stop"))
                 {
                     playing = false;
+                }
+            }
+            else
+            {
+                if(GUILayout.Button("Play Forwards"))
+                {
+                    script.PlayForwards();
+                }
+                if(GUILayout.Button("Play Backwards"))
+                {
+                    script.PlayBackwards();
+                }
+                if (GUILayout.Button("Toggle"))
+                {
+                    script.Toggle();
                 }
             }
         }

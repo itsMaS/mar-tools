@@ -18,28 +18,12 @@ namespace MarTools
     
         [HideInInspector] public Window navigatesTo;
 
-        private Action onEnabledAction = null;
-
-        private void OnEnable()
-        {
-            onEnabledAction?.Invoke();
-            onEnabledAction = null;
-
-            if(!manager)
-            {
-                Debug.LogError("Canvas does not contain a UI Manager");
-            }
-        }
-
         protected override void OnSubmitedInternal()
         {
             base.OnSubmitedInternal();
             OnClick.Invoke();
-        }
-
-        public void Click()
-        {
             if (!gameObject.activeInHierarchy) return;
+
 
             if(navigatesTo != null)
             {

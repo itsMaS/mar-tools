@@ -4,7 +4,6 @@ namespace MarTools
     using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
-    using Unity.VisualScripting;
     using UnityEngine;
     using UnityEngine.Events;
     using UnityEngine.EventSystems;
@@ -49,6 +48,9 @@ namespace MarTools
         public UnityEvent OnSelect;
         public UnityEvent OnSubmit;
 
+        public List<UIElement> EnabledUIElements = new List<UIElement>();
+
+        private Coroutine navigationComboCoroutine;
 
         private void Awake()
         {
@@ -60,6 +62,16 @@ namespace MarTools
 
             if (!cam) cam = GetComponentInParent<Camera>();
             if (!cam) cam = FindObjectOfType<Camera>();
+
+        }
+
+        private void Start()
+        {
+            SubscribeInput(submitAction, Submit);
+            SubscribeInput(navigationVector, Navigate);
+
+            SubscribeInput(nextTabAction, NextTab);
+            SubscribeInput(previousTabAction, PreviousTab);
         }
 
         public InputAction ResolveAction(InputActionReference reference)
@@ -83,57 +95,26 @@ namespace MarTools
                 return reference.action;
             }
         }
+
         public void SetPlayerIndex(int index)
         {
-            UnsusbscribeInput();
             playerIndex = index;
-            SubscribeToInput();
-        }
-        private void SubscribeToInput()
-        {
-            PlayerInput input = PlayerInput.GetPlayerByIndex(playerIndex);
-            if (playerIndex >= 0 && (!input || !input.actions)) return;
-
-            ResolveAction(submitAction).performed += SubmitStart;
-            ResolveAction(submitAction).canceled += SubmitEnd;
-            ResolveAction(navigationVector).performed += Navigate;
-            ResolveAction(nextTabAction).performed += NextTab;
-            ResolveAction(previousTabAction).performed += PreviousTab;
-
-
-            ResolveAction(nextTabAction).Enable();
-            ResolveAction(previousTabAction).Enable();
-            ResolveAction(submitAction).Enable();
-            ResolveAction(navigationVector).Enable();
+            EnableInput();
         }
 
-        private void UnsusbscribeInput()
-        {
-            PlayerInput input = PlayerInput.GetPlayerByIndex(playerIndex);
-            if (playerIndex >= 0 && (!input || !input.actions)) return;
-
-            ResolveAction(submitAction).performed -= SubmitStart;
-            ResolveAction(submitAction).canceled -= SubmitEnd;
-            ResolveAction(navigationVector).performed -= Navigate;
-            ResolveAction(nextTabAction).performed -= NextTab;
-            ResolveAction(previousTabAction).performed -= PreviousTab;
-        }
         private void OnEnable()
         {
-            SubscribeToInput();
-
-            if(!cam)
-            {
-                cam = GetComponent<Camera>();
-            }
+            EnableInput();
         }
         private void OnDisable()
         {
-            UnsusbscribeInput();
+            DisableInput();
         }
 
         private void PreviousTab(InputAction.CallbackContext obj)
         {
+            if (obj.phase != InputActionPhase.Performed) return;
+
             GetComponentsInChildren<TabGroup>().ToList().ForEach(x =>
             {
                 if (x.gameObject.activeInHierarchy) x.PreviousTab();
@@ -141,6 +122,8 @@ namespace MarTools
         }
         private void NextTab(InputAction.CallbackContext obj)
         {
+            if (obj.phase != InputActionPhase.Performed) return;
+
             GetComponentsInChildren<TabGroup>().ToList().ForEach(x =>
             {
                 if (x.gameObject.activeInHierarchy) x.NextTab();
@@ -149,32 +132,71 @@ namespace MarTools
         private void Navigate(InputAction.CallbackContext obj)
         {
             SetNavigationType(NavigationType.Axis);
-    
-            if(selected == null)
+
+            if (navigationComboCoroutine != null)
+            {
+                StopCoroutine(navigationComboCoroutine);
+                navigationComboCoroutine = null;
+            }
+
+            if (obj.phase == InputActionPhase.Performed)
+            {
+                navigationComboCoroutine = StartCoroutine(NavigationCombo(obj.action));
+            }
+        }
+
+        private void Navigate(Vector2 direction)
+        {
+            if (lastNotNull != null && !lastNotNull.gameObject.activeInHierarchy) lastNotNull = null;
+            if (selected == null && lastNotNull != null)
             {
                 SelectButton(lastNotNull);
             }
+            if (selected == null) return;
+            selected.Navigate(direction);
+        }
 
-    
-            Vector2 aim = obj.ReadValue<Vector2>();
-            selected.Navigate(aim);
+        IEnumerator NavigationCombo(InputAction action)
+        {
+            Navigate(action.ReadValue<Vector2>());
 
+            float timeStep = 0.6f;
+            float elapsed = 0;
+
+            while(true)
+            {
+                if (elapsed > timeStep) 
+                {
+                    elapsed = 0;
+                    Navigate(action.ReadValue<Vector2>());
+                    timeStep = Mathf.Max(timeStep * 0.5f, 0.1f);
+                }
+                else
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+            }
         }
 
         public UIElement GetAdjacent(UIElement origin, Vector2 direction)
         {
+            // IMPROVE THIS FUNCTION IT'S STILL PRETTY BAD
+
+
             Vector3 realDirection = transform.right * direction.x + transform.up * direction.y;
             Debug.DrawLine(origin.transform.position, origin.transform.position + realDirection * 1000, Color.cyan, 1f);
 
             var AllPotentialTargets = GetComponentsInChildren<UIElement>().ToList().Where(x => !x.mouseOnly && origin != x);
 
+            float angleCheck = 50f;
+
             AllPotentialTargets = AllPotentialTargets.Where(x =>
             {
                 Vector3 toTarget = x.transform.position - origin.transform.position;
                 float angle = Vector3.Angle(toTarget, realDirection);
-
                 float availableAngle = 80;
-                if (angle > availableAngle)
+                if (angle > angleCheck)
                 {
                     Debug.DrawLine(origin.transform.position, x.transform.position, Color.red, 1f);
                 }
@@ -195,8 +217,7 @@ namespace MarTools
                     float distanceNormalized = distance / maxDistance;
                     float angle = Vector3.Angle(x.transform.position - origin.transform.position, realDirection);
 
-                    float costToReach = distanceNormalized;
-
+                    float costToReach = distanceNormalized + (angle/angleCheck)*0.2f;
                     return costToReach;
                 });
 
@@ -215,6 +236,18 @@ namespace MarTools
             if(target != null)
             {
                 SelectButton(target);
+            }
+        }
+
+        private void Submit(InputAction.CallbackContext obj)
+        {
+            if(obj.phase == InputActionPhase.Started)
+            {
+                SubmitStart(obj);
+            }
+            else if(obj.phase == InputActionPhase.Canceled)
+            {
+                SubmitEnd(obj);
             }
         }
 
@@ -345,6 +378,84 @@ namespace MarTools
             else
             {
                 return RectTransformUtility.WorldToScreenPoint(cam, worldPosition);
+            }
+        }
+
+        internal void Subscribe(UIElement uIElement)
+        {
+            EnabledUIElements.Add(uIElement);
+        }
+
+        internal void Unsubscribe(UIElement uIElement)
+        {
+            EnabledUIElements.Remove(uIElement);
+        }
+
+        private Dictionary<string, UnityEvent<InputAction.CallbackContext>> EventDictionary = new Dictionary<string, UnityEvent<InputAction.CallbackContext>>();
+        Action inputCleanupAction = null;
+        private void EnableInput()
+        {
+            DisableInput();
+
+            PlayerInput player = PlayerInput.GetPlayerByIndex(playerIndex);
+            // If player exists get asset held by the player, if not, use the action asset 
+            InputActionAsset asset = player ? player.actions : submitAction.asset;
+
+            var actionMap = asset.FindActionMap("UI");
+            actionMap.actionTriggered += ActionTriggered;
+            actionMap.Enable();
+
+            inputCleanupAction = () => actionMap.actionTriggered -= ActionTriggered;
+
+            foreach (var item in actionMap.actions)
+            {
+                if(EventDictionary.TryAdd(item.name, new UnityEvent<InputAction.CallbackContext>()))
+                {
+
+                }
+            }
+        }
+        private void DisableInput()
+        {
+            inputCleanupAction?.Invoke();
+        }
+
+        private void ActionTriggered(InputAction.CallbackContext obj)
+        {
+            EventDictionary[obj.action.name].Invoke(obj);
+        }
+
+        public void SubscribeInput<T>(InputActionReference r, UnityAction<T> action, InputActionPhase phase = InputActionPhase.Performed) where T : struct
+        {
+            if(EventDictionary.TryGetValue(r.action.name, out var context))
+            {
+                context.AddListener(x =>
+                {
+                    if(x.phase == phase)
+                    {
+                        action.Invoke(x.ReadValue<T>());
+                    }
+                });
+            }
+            else
+            {
+                Debug.LogError($"The UI action map does not contain {r.name} from {r.action.actionMap}");
+            }
+        }
+
+        public void SubscribeInput(InputActionReference r, UnityAction<InputAction.CallbackContext> action)
+        {
+            if (EventDictionary.TryGetValue(r.action.name, out var context))
+            {
+                context.AddListener(action);
+            }
+            else
+            {
+                string all = "";
+                EventDictionary.Keys.ToList().ForEach(x => all += $"{x}\n");
+
+                Debug.LogError($"The UI action map does not contain {r.name} [{r.action.name}] from {r.action.actionMap} It contains these actions:\n");
+
             }
         }
     }

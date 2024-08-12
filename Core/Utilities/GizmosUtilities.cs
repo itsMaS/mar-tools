@@ -1,12 +1,12 @@
 namespace MarTools
 {
+#if UNITY_EDITOR
+    using UnityEditor;
+#endif
     using System.Collections;
     using System.Collections.Generic;
     using UnityEngine;
 
-#if UNITY_EDITOR
-    using UnityEditor;
-#endif
 
     public static class GizmosUtilities
     {
@@ -74,6 +74,19 @@ namespace MarTools
 
             Handles.DrawLine(end, end + right * arrowHeadLength);
             Handles.DrawLine(end, end + left * arrowHeadLength);
+        }
+
+        public static void DrawVisibility(this Transform transform, float angle, float radius, Color color)
+        {
+            Color prev = Handles.color;
+            Handles.color = color;
+
+            Matrix4x4 rotationMatrix = Matrix4x4.Rotate(Quaternion.AngleAxis(-angle/2, Vector3.up));
+            // Rotate the vector using the matrix
+            Vector3 rotatedVector = rotationMatrix.MultiplyPoint3x4(Vector3.ProjectOnPlane(transform.forward, Vector3.up));
+            Handles.DrawSolidArc(transform.position, Vector3.up, rotatedVector, angle, radius);
+            Handles.color = prev;
+
         }
     }
 #endif

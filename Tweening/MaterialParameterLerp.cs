@@ -5,13 +5,13 @@ namespace MarTools
     using UnityEngine;
     
     [RequireComponent(typeof(Renderer))]
-    public class MaterialParameterLerp : TweenCore
+    public abstract class MaterialParameterLerp<T> : TweenCore
     {
-        public string materialID;
+        public string parameterID;
         public int materialIndex = 0;
     
-        public float from = 0;
-        public float to = 1;
+        public T from;
+        public T to;
     
         Material mat;
     
@@ -22,12 +22,13 @@ namespace MarTools
             if(!mat)
             {
                 var renderer = GetComponent<Renderer>();
-    
                 mat = renderer.materials[materialIndex];
             }
     
-            mat.SetFloat(materialID, Mathf.Lerp(from,to, t));
+            SetParameter(mat, parameterID, from, to, t);
         }
+
+        protected abstract void SetParameter(Material mat, string parameterID, T from, T to, float t);
     }
     
 }

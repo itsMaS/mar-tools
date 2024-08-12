@@ -36,8 +36,13 @@ namespace MarTools
         private void UpdateAnimation()
         {
             Quaternion rot = transform.rotation;
+            Vector3 pos = transform.position;
+            Vector3 scale = transform.localScale;
+
             clip.SampleAnimation(gameObject, progress * clip.length);
             gameObject.transform.rotation = rot;
+            gameObject.transform.position = pos;
+            gameObject.transform.localScale = scale;
         }
     }
     
