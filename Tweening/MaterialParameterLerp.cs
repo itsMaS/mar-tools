@@ -9,8 +9,10 @@ namespace MarTools
     {
         public string parameterID;
         public int materialIndex = 0;
-    
+
+        [ColorUsage(true, true)]
         public T from;
+        [ColorUsage(true, true)]
         public T to;
     
         Material mat;

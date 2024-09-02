@@ -6,7 +6,7 @@ namespace MarTools
     using System.Collections;
     using System.Collections.Generic;
     using UnityEngine;
-
+    using System;
 
     public static class GizmosUtilities
     {
@@ -23,6 +23,18 @@ namespace MarTools
 
             Gizmos.DrawLine(end, end + right * arrowHeadLength);
             Gizmos.DrawLine(end, end + left * arrowHeadLength);
+        }
+
+        internal static void DrawLine(List<Vector3> controlPoints, bool looping)
+        {
+            for (int i = 1; i < controlPoints.Count; i++)
+            {
+                Gizmos.DrawLine(controlPoints[i], controlPoints[i - 1]);
+            }
+            if(looping)
+            {
+                Gizmos.DrawLine(controlPoints[0], controlPoints[controlPoints.Count - 1]);
+            }
         }
     }
 

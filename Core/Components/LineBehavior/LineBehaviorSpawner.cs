@@ -187,6 +187,8 @@ namespace MarTools
         private void OnSceneGUI()
         {
             var script = (target as LineBehaviorSpawner);
+
+            if (script.SpawnPositions.Count > 500) return;
             foreach (var item in script.SpawnPositions)
             {
                 Vector3 forward = item.rotation * Vector3.forward;
