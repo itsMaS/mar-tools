@@ -83,7 +83,10 @@ namespace MarTools
 
             //TryCastFirst(out Interactable newHovered, interactionBlockMask, raycastDistance, raycastWidth, item => item.CanBeInteracted(this));
 
+            // REWRITE
+
             Interactable newHovered = null;
+
             List<Collider> Colliders = Physics.SphereCastAll(raycastPosition.position, raycastWidth, raycastPosition.forward, raycastDistance).ToList().OrderBy(x => Vector3.Distance(x.point, raycastPosition.position)).ToList().ConvertAll(x => x.collider);
             foreach (var item in Physics.OverlapSphere(raycastPosition.position, raycastWidth))
             {
@@ -109,6 +112,7 @@ namespace MarTools
                     else break;
                 }
             }
+            //
 
             if(newHovered != hovered)
             {

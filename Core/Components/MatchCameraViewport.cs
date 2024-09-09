@@ -7,20 +7,18 @@ namespace MarTools
 
     [ExecuteAlways]
     [RequireComponent(typeof(RectTransform))]
-    public class SplitscreenUIMask : MonoBehaviour
+    public class MatchCameraViewport : MonoBehaviour
     {
         [SerializeField] public Camera cam;
         RectTransform rt;
 
         void Update()
         {
+            if (!cam) return;
             if (!rt) rt = GetComponent<RectTransform>();
 
-            if(cam)
-            {
-                rt.anchorMin = new Vector2(cam.rect.x, cam.rect.y);
-                rt.anchorMax = new Vector2(cam.rect.x + cam.rect.width, cam.rect.y + cam.rect.height);
-            }
+            rt.anchorMin = new Vector2(cam.rect.x, cam.rect.y);
+            rt.anchorMax = new Vector2(cam.rect.x + cam.rect.width, cam.rect.y + cam.rect.height);
         }
     }
 }

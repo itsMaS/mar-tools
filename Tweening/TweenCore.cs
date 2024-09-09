@@ -11,7 +11,7 @@ namespace MarTools
     using UnityEditor;
     #endif
 
-    public abstract class TweenCore : MonoBehaviour
+    public abstract class TweenCore : MonoBehaviour, IGameMechanic
     {
         public UnityEvent OnComplete;
         public UnityEvent OnPlayForwards;
@@ -171,6 +171,11 @@ namespace MarTools
         }
 
         public abstract void SetPose(float t);
+
+        public void Execute()
+        {
+            PlayForward();
+        }
     }
     
     #if UNITY_EDITOR

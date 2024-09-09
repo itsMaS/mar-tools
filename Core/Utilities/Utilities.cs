@@ -4,6 +4,7 @@ namespace MarTools
     using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
     using UnityEngine;
         
     public static class Utilities
@@ -48,6 +49,11 @@ namespace MarTools
             }
         
             return closestElement;
+        }
+
+        public static float Remap(this float input, Vector2 from, Vector2 to)
+        {
+            return Mathf.Lerp(to.x, to.y, Mathf.Clamp01(Mathf.InverseLerp(from.x, from.y, input)));
         }
         
         public static Vector2 FindClosest(this IEnumerable<Vector2> collection, Vector2 target, out float closestDistance)
@@ -460,6 +466,29 @@ namespace MarTools
             float newY = v.x * sin + v.y * cos;
 
             return new Vector2(newX, newY);
+        }
+
+
+        public static List<T> GetVariablesOfType<T>(this Component comp)
+        {
+            if (comp == null)
+                return null; // or throw an ArgumentNullException if that's preferable
+
+            List<T> variables = new List<T>();
+            // Get all public instance fields of the component
+            FieldInfo[] fields = comp.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+            foreach (FieldInfo field in fields)
+            {
+                if (field.FieldType == typeof(T))
+                {
+                    // Cast the field value to type T and add it to the list
+                    T value = (T)field.GetValue(comp);
+                    variables.Add(value);
+                }
+            }
+
+            return variables;
         }
     }
 }
