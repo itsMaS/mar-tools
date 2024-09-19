@@ -11,6 +11,22 @@ namespace MarTools
 
     public class Trigger : MonoBehaviour
     {
+#if UNITY_EDITOR
+        [MenuItem("GameObject/Gameplay/Trigger", false, 1)]
+        public static void CreateTrigger()
+        {
+            GameObject triggerGO = new GameObject("New Trigger");
+            Trigger trigger = triggerGO.AddComponent<Trigger>();
+            BoxCollider collider = triggerGO.AddComponent<BoxCollider>();
+            collider.isTrigger = true;
+
+            Selection.activeGameObject = triggerGO;
+            EditorGUIUtility.editingTextField = true;
+        }
+#endif
+
+
+
         [SerializeReference]
         public IGameObjectConditional checkFunction = new CompareTag();
 
@@ -91,6 +107,53 @@ namespace MarTools
         public bool CheckCompletion()
         {
             return EnteredGameobjects.Count > 0;
+        }
+
+
+        private void OnDrawGizmos()
+        {
+            Color col = Color.gray;
+            if(Application.isPlaying)
+            {
+                col = completed ? Color.green : Color.gray;
+            }
+
+            col.a = 0.05f;
+            Gizmos.color = col;
+
+            if(TryGetComponent<BoxCollider>(out var box))
+            {
+                // Set the Gizmos color with transparency (RGBA)
+
+                // Get the box collider's size and center relative to the GameObject's transform
+                Vector3 boxSize = box.size;
+                Vector3 boxCenter = box.center;
+
+                // Apply the GameObject's local transform for correct positioning in the world space
+                Gizmos.matrix = transform.localToWorldMatrix;
+
+                // Draw a transparent wireframe box
+                Gizmos.DrawWireCube(boxCenter, boxSize);
+
+                // Draw a transparent solid box
+                Gizmos.DrawCube(boxCenter, boxSize);
+            }
+            if (TryGetComponent<SphereCollider>(out var sphere))
+            {
+                // Set the Gizmos color with transparency (RGBA)
+                // Get the sphere collider's radius and center relative to the GameObject's transform
+                float sphereRadius = sphere.radius;
+                Vector3 sphereCenter = sphere.center;
+
+                // Apply the GameObject's local transform for correct positioning in the world space
+                Gizmos.matrix = transform.localToWorldMatrix;
+
+                // Draw a transparent wireframe sphere
+                Gizmos.DrawWireSphere(sphereCenter, sphereRadius);
+
+                // Draw a transparent solid sphere
+                Gizmos.DrawSphere(sphereCenter, sphereRadius);
+            }
         }
     }
 
