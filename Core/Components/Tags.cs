@@ -65,7 +65,12 @@ namespace MarTools
         {
             return _Tags.Exists(item => item.name == tag);
         }
+        public void ReplaceTag(TagSO newTag)
+        {
+            _Tags = new List<TagSO>() { newTag };
+        }
     }
+
 
 #if UNITY_EDITOR
     [CustomEditor(typeof(Tags))]

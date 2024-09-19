@@ -4,6 +4,7 @@ namespace MarTools
     using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
     using UnityEditor;
     using UnityEngine;
 
@@ -56,6 +57,27 @@ namespace MarTools
             GUILayout.EndHorizontal(); // End the horizontal group
 
             return options[selectedIndex].Value;
+        }
+
+        public static List<Type> GetDerivedClasses(Type baseType)
+        {
+            // Get all types in the current assembly that inherit from the specified baseType
+            return Assembly.GetAssembly(baseType)
+                           .GetTypes()
+                           .Where(type => type.IsClass && !type.IsAbstract && type.IsSubclassOf(baseType))
+                           .ToList();
+        }
+
+        public static List<Type> GetImplementationsOfInterface<TInterface>()
+        {
+            // Get the interface type
+            var interfaceType = typeof(TInterface);
+
+            // Get all types in the current assembly (or other assemblies, if needed)
+            var types = Assembly.GetAssembly(interfaceType).GetTypes();
+
+            // Filter types that are classes and implement the interface
+            return types.Where(t => t.IsClass && !t.IsAbstract && interfaceType.IsAssignableFrom(t)).ToList();
         }
     }
 #endif

@@ -10,7 +10,7 @@ namespace MarTools
     
     public class AnimationPoser : MonoBehaviour
     {
-        [SerializeField] AnimationClip clip;
+        [SerializeField] public AnimationClip clip;
         [Range(0, 1)] public float progress;
 
         public float speed = 0;
@@ -50,7 +50,21 @@ namespace MarTools
     [CustomEditor(typeof(AnimationPoser))]
     public class AnimationPoserEditor : Editor
     {
-    
+
+        AnimationPoser script;
+        private void OnEnable()
+        {
+            script = (AnimationPoser)target;
+        }
+        public override void OnInspectorGUI()
+        {
+            base.OnInspectorGUI();
+
+            if(script.clip)
+            {
+                GUILayout.Label($"Clip duration: {script.clip.length}");
+            }
+        }
     }
     #endif
     

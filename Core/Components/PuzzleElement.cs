@@ -6,11 +6,19 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using System;
+using System.Linq;
 
 namespace HauntedPaws
 {
     public class PuzzleElement : MonoBehaviour
     {
+        [Serializable]
+        public enum CompositeActivationType
+        {
+            AND = 0,
+            OR = 1,
+        }
+
         public bool activated { get; private set; } = false;
 
         public UnityEvent OnActivated;
@@ -18,6 +26,7 @@ namespace HauntedPaws
 
         [Tooltip("If all elements of this list is activated, this element is activated as well")]
         public List<PuzzleElement> CompositeActivation = new List<PuzzleElement>();
+        public CompositeActivationType compositeActivationType = CompositeActivationType.AND;
 
         private void Awake()
         {
@@ -33,7 +42,8 @@ namespace HauntedPaws
 
         private void CheckSum()
         {
-            if(CompositeActivation.TrueForAll(x => x.activated))
+            if ((compositeActivationType == CompositeActivationType.AND && CompositeActivation.TrueForAll(x => x.activated)) ||
+                (compositeActivationType == CompositeActivationType.OR && CompositeActivation.Any(x => x.activated)))
             {
                 if(!activated)
                     Activate();

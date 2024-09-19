@@ -6,7 +6,8 @@ namespace MarTools
     using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.Events;
-    
+
+    [SelectionBase]
     public class Interactable : MonoBehaviour
     {
         public UnityEvent<InteractionController> OnHover;
@@ -59,6 +60,8 @@ namespace MarTools
             {
                 OnInteractStart.Invoke(controller);
                 currentInteractor = controller;
+
+                if (interactionDuration <= 0) Interacted();
                 return true;
             }
             else
@@ -99,6 +102,18 @@ namespace MarTools
             }
         }
 
+        public void ToggleAvailability()
+        {
+            if(available)
+            {
+                SetAvailability(false);
+            }
+            else
+            {
+                SetAvailability(true);
+            }
+        }
+
         private void Update()
         {
             if(currentInteractor)
@@ -109,10 +124,10 @@ namespace MarTools
                 }
                 else
                 {
-                    interactionProgressNormalized = 1;
+                    interactionProgressNormalized = 0;
                 }
 
-                if(interactionProgressNormalized >= 1)
+                if(interactionProgressNormalized >= 1 && interactionDuration > 0)
                 {
                     Interacted();
                 }
@@ -127,8 +142,6 @@ namespace MarTools
 
         private void Interacted()
         {
-            OnInteracted.Invoke(currentInteractor);
-            
             if(lockOnInteraction)
             {
                 available = false;
@@ -148,6 +161,7 @@ namespace MarTools
             }
 
             interactionProgressNormalized = Mathf.Clamp01(interactionProgressNormalized);
+            OnInteracted.Invoke(currentInteractor);
         }
 
         private void OnDrawGizmos()

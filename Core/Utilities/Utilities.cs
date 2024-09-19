@@ -4,50 +4,80 @@ namespace MarTools
     using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
     using UnityEngine;
-        
+
     public static class Utilities
     {
-        public static Coroutine DelayedAction(this MonoBehaviour behavior, float time, Action onComplete, Action<float> onUpdate = null, bool timeScaled = true, Ease ease = Ease.InOutQuad)
+        public static Coroutine DelayedAction(this MonoBehaviour behavior, float time, Action onComplete, Action<float> onUpdate = null, bool timeScaled = true, Ease ease = Ease.InOutQuad, AnimationCurve curve = null)
         {
             if (behavior.enabled && behavior.gameObject.activeInHierarchy)
-                return behavior.StartCoroutine(DelayedCoroutine(time, onComplete, onUpdate, timeScaled, ease));
+                return behavior.StartCoroutine(DelayedCoroutine(time, onComplete, onUpdate, timeScaled, ease, curve));
             else
                 return null;
         }
-        
-        private static IEnumerator DelayedCoroutine(float duration, Action onComplete, Action<float> onUpdate, bool timeScaled = true, Ease ease = Ease.InOutSine)
+
+        private static IEnumerator DelayedCoroutine(float duration, Action onComplete, Action<float> onUpdate, bool timeScaled = true, Ease ease = Ease.InOutSine, AnimationCurve curve = null)
         {
             float elapsed = 0;
             float t = 0;
-            while (elapsed < duration) 
+            while (elapsed < duration)
             {
                 elapsed += timeScaled ? Time.deltaTime : Time.unscaledDeltaTime;
                 t = elapsed / duration;
-                onUpdate?.Invoke(Eases[ease].Invoke(t));
+
+                float adjustedT = 0;
+
+                if (ease != Ease.Custom)
+                {
+                    adjustedT = Eases[ease].Invoke(t);
+                }
+                else
+                {
+                    adjustedT = curve.Evaluate(t);
+                }
+
+                onUpdate?.Invoke(adjustedT);
                 yield return null;
             }
-            onUpdate?.Invoke(Eases[ease].Invoke(1));
+
+            if (ease != Ease.Custom)
+            {
+                onUpdate?.Invoke(Eases[ease].Invoke(1));
+            }
+            else
+            {
+                onUpdate?.Invoke(curve.Evaluate(t));
+            }
             onComplete?.Invoke();
         }
-        
+
         public static T FindClosest<T>(this IEnumerable<T> collection, Vector3 target, Func<T, Vector3> PositionFunction, out float closestDistance)
         {
             closestDistance = float.MaxValue;
             T closestElement = collection.First();
-        
+
             foreach (var item in collection)
             {
                 float distance = Vector3.Distance(PositionFunction.Invoke(item), target);
-        
+
                 if (distance < closestDistance)
                 {
                     closestDistance = distance;
                     closestElement = item;
                 }
             }
-        
+
             return closestElement;
+        }
+
+        public static float Remap(this float input, Vector2 from, Vector2 to)
+        {
+            return Mathf.Lerp(to.x, to.y, Mathf.Clamp01(Mathf.InverseLerp(from.x, from.y, input)));
+        }
+        public static float Remap(this float input, float i1, float i2, float o1 = 1, float o2 = 1, bool clamp = true)
+        {
+            return Mathf.LerpUnclamped(o1, o2, Mathf.InverseLerp(i1, i2, input));
         }
         
         public static Vector2 FindClosest(this IEnumerable<Vector2> collection, Vector2 target, out float closestDistance)
@@ -65,6 +95,7 @@ namespace MarTools
             OutBounce,
             OutQuad,
             InQuad,
+            Custom = 99,
         }
         
         public static Dictionary<Ease, Func<float, float>> Eases = new Dictionary<Ease, Func<float, float>>
@@ -113,11 +144,6 @@ namespace MarTools
         public static float Pulse(float t)
         {
             return Mathf.Sin(t * Mathf.PI);
-        }
-        
-        public static float Remap(float value, float from1, float to1, float from2, float to2)
-        {
-            return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
         }
         
         public static int LayerMaskToLayer(LayerMask layerMask)
@@ -460,6 +486,32 @@ namespace MarTools
             float newY = v.x * sin + v.y * cos;
 
             return new Vector2(newX, newY);
+        }
+
+
+        public static List<T> GetVariablesOfType<T>(this Component comp, bool includeDerived = false)
+        {
+            return GetFieldsOfType<T>(comp, includeDerived).ConvertAll(x => (T)x.GetValue(comp));
+        }
+
+        public static List<FieldInfo> GetFieldsOfType<T>(this Component comp, bool includeDerived = false)
+        {
+            if (comp == null)
+                return null; // or throw an ArgumentNullException if that's preferable
+
+            List<FieldInfo> matchingFields = new List<FieldInfo>();
+            // Get all public instance fields of the component
+            FieldInfo[] fields = comp.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+            foreach (FieldInfo field in fields)
+            {
+                if (includeDerived ? typeof(T).IsAssignableFrom(field.FieldType) : field.FieldType == typeof(T))
+                {
+                    matchingFields.Add(field);
+                }
+            }
+
+            return matchingFields;
         }
     }
 }

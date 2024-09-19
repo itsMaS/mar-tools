@@ -27,9 +27,13 @@ namespace MarTools
         public Interactable interactable { get; private set; }
         
         public bool active = true;
-    
 
+        List<Collider> ChildrenColliders = new List<Collider>();
 
+        private void Awake()
+        {
+            ChildrenColliders = GetComponentsInChildren<Collider>().ToList();
+        }
         public void BeginInteract()
         {
             if (hovered)
@@ -79,10 +83,22 @@ namespace MarTools
 
             //TryCastFirst(out Interactable newHovered, interactionBlockMask, raycastDistance, raycastWidth, item => item.CanBeInteracted(this));
 
+            // REWRITE
+
             Interactable newHovered = null;
-            foreach (var item in Physics.SphereCastAll(raycastPosition.position, raycastWidth, raycastPosition.forward, raycastDistance).ToList().OrderBy(x => Vector3.Distance(x.point, raycastPosition.position)))
+
+            List<Collider> Colliders = Physics.SphereCastAll(raycastPosition.position, raycastWidth, raycastPosition.forward, raycastDistance).ToList().OrderBy(x => Vector3.Distance(x.point, raycastPosition.position)).ToList().ConvertAll(x => x.collider);
+            foreach (var item in Physics.OverlapSphere(raycastPosition.position, raycastWidth))
             {
-                if(item.collider.TryGetComponent<Interactable>(out var inter))
+                Colliders.Insert(0,item);
+            }
+
+            foreach (var item in Colliders)
+            {
+                // Skip if collider is inside this gameobject's hierarchy
+                if (ChildrenColliders.Contains(item)) continue;
+
+                if(item.TryGetComponent<Interactable>(out var inter))
                 {
                     if (!inter.CanBeInteracted(this)) continue;
 
@@ -91,9 +107,12 @@ namespace MarTools
                 }
                 else
                 {
-                    break;
+
+                    if (item.isTrigger) continue;
+                    else break;
                 }
             }
+            //
 
             if(newHovered != hovered)
             {

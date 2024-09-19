@@ -190,11 +190,97 @@ namespace MarTools
             {
                 item.UpdateShape();
             }
+
+            foreach (var item in FindObjectsOfType<LineBehaviorSpawner>().Where(x => x.InsideOf.Contains(this) || x.OutsideOf.Contains(this)))
+            {
+                item.UpdateShape();
+            }
         }
 
         public bool IsPointInsideShape(Vector3 point)
         {
             return Utilities.IsPointInside(smoothWorldPoints, point);
+        }
+
+        public (Vector3, Vector3) GetClosestPointOnLine(Vector3 targetPoint)
+        {
+            List<Vector3> points = smoothWorldPoints;
+
+            if (points.Count < 2)
+                throw new InvalidOperationException("The line must have at least two points to calculate a closest point.");
+
+            Vector3 closestPoint = points[0];
+            Vector3 normalAtPoint = Vector3.forward;
+
+            float minDistance = float.MaxValue;
+
+            for (int i = 0; i < points.Count - 1; i++)
+            {
+                Vector3 lineStart = points[i];
+                Vector3 lineEnd = points[i + 1];
+
+                Vector3 closestPointOnSegment = GetClosestPointOnLineSegment(targetPoint, lineStart, lineEnd);
+                float distance = Vector3.Distance(targetPoint, closestPointOnSegment);
+
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    closestPoint = closestPointOnSegment;
+                    normalAtPoint = lineEnd- lineStart;
+                }
+            }
+
+            return (closestPoint, normalAtPoint);
+        }
+
+        private Vector3 GetClosestPointOnLineSegment(Vector3 point, Vector3 lineStart, Vector3 lineEnd)
+        {
+            Vector3 lineToPoint = point - lineStart;
+            Vector3 lineVector = lineEnd - lineStart;
+            float lineLengthSquared = lineVector.sqrMagnitude;
+
+            if (lineLengthSquared == 0.0f)
+                return lineStart;
+
+            float projectionFactor = Vector3.Dot(lineToPoint, lineVector) / lineLengthSquared;
+            projectionFactor = Mathf.Clamp01(projectionFactor);
+
+            return lineStart + projectionFactor * lineVector;
+        }
+
+        public float GetDistanceAlongCurve(Vector3 targetPoint)
+        {
+            List<Vector3> points = smoothWorldPoints;
+
+            if (points.Count < 2)
+                throw new InvalidOperationException("The line must have at least two points to calculate a distance.");
+
+            float totalDistance = 0f;
+            float closestDistance = float.MaxValue;
+            float distanceAtClosestPoint = 0f;
+
+            for (int i = 0; i < points.Count - 1; i++)
+            {
+                Vector3 lineStart = points[i];
+                Vector3 lineEnd = points[i + 1];
+
+                // Calculate the distance along the current segment
+                float segmentDistance = Vector3.Distance(lineStart, lineEnd);
+                totalDistance += segmentDistance;
+
+                // Find the closest point on this segment to the targetPoint
+                Vector3 closestPointOnSegment = GetClosestPointOnLineSegment(targetPoint, lineStart, lineEnd);
+                float distanceToTarget = Vector3.Distance(targetPoint, closestPointOnSegment);
+
+                // Check if this is the closest point so far
+                if (distanceToTarget < closestDistance)
+                {
+                    closestDistance = distanceToTarget;
+                    distanceAtClosestPoint = totalDistance - segmentDistance + Vector3.Distance(lineStart, closestPointOnSegment);
+                }
+            }
+
+            return distanceAtClosestPoint;
         }
     }
 
@@ -209,7 +295,9 @@ namespace MarTools
         private bool snap => EditorPrefs.GetBool("Snapping", false);
         private bool flat => EditorPrefs.GetBool("Flat", true);
 
-        private float lastHeight = 0;
+        private float lastHeight => lineDrawer.points.Count == 0 ? 0 : lineDrawer.worldPoints.Last().y;
+
+        private bool editing = false;
 
         private void OnEnable()
         {
@@ -230,7 +318,12 @@ namespace MarTools
             lineDrawer.autoUpdate = EditorGUILayout.Toggle("Auto Update", lineDrawer.autoUpdate);
             lineDrawer.smoothingLength = EditorGUILayout.FloatField("Smoothing length", lineDrawer.smoothingLength);
 
-            lastHeight = EditorGUILayout.FloatField("Height", lastHeight);
+            if(GUILayout.Button(editing ? "Stop editing" : "Edit"))
+            {
+                editing = !editing;
+            }
+
+            //lastHeight = EditorGUILayout.FloatField("Height", lastHeight);
 
             bool newFlatSetting = EditorGUILayout.Toggle("Flat", flat);
             EditorPrefs.SetBool("Flat", newFlatSetting);
@@ -249,6 +342,11 @@ namespace MarTools
                     lineDrawer.points[i] = lineDrawer.points[i].Snap(gridSize);
                 }
             }
+            if(GUILayout.Button("Reverse points"))
+            {
+                lineDrawer.points.Reverse();
+            }
+
             if (GUILayout.Button("Set pivot to median points"))
             {
                 var worldPositions = lineDrawer.worldPoints;
@@ -269,6 +367,8 @@ namespace MarTools
     
         private void OnSceneGUI()
         {
+            if (!editing) return;
+ 
             if(Event.current.type == EventType.MouseUp && Event.current.button == 0)
             {
                 Undo.RecordObject(lineDrawer, "Move points");
@@ -394,12 +494,14 @@ namespace MarTools
                     insertIndex = removeIndex;
                     if (removeIndex == localPoints.Count - 1) insertIndex++;
                 }
-    
+
+                float midHeight = 0;
                 if(localPoints.Count > 0 && minIndex2 >= 0 && minIndex1 >= 0)
                 {
                     Handles.color = Color.cyan;
                     Handles.DrawWireDisc(localPoints[minIndex1], Vector3.up, 1);
                     Handles.DrawWireDisc(localPoints[minIndex2], Vector3.up, 1);
+                    midHeight = Mathf.Lerp(localPoints[minIndex1].y, localPoints[minIndex2].y, 0.5f);
                 }
     
                 Handles.color = Color.red;
@@ -411,11 +513,24 @@ namespace MarTools
     
                 Handles.color = Color.white;
                 Handles.DrawWireDisc(cursorWorldPosition, Vector3.up, 0.5f);
-                if(Event.current.type == EventType.MouseDown)
+                Handles.DrawWireDisc(cursorWorldPosition.MaskY(0), Vector3.up, 0.5f);
+
+                Vector3 insertPointWorldCoordinate = Vector3.zero;
+
+                Plane plane = new Plane(Vector3.up, -midHeight);
+                Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
+                if (plane.Raycast(ray, out float distance))
+                {
+                    insertPointWorldCoordinate = ray.GetPoint(distance);
+                }
+
+
+
+                if (Event.current.type == EventType.MouseDown)
                 {
                     if (Event.current.button == 0)
                     {
-                        Vector3 insertPoint = lineDrawer.transform.InverseTransformPoint(cursorWorldPosition);
+                        Vector3 insertPoint = lineDrawer.transform.InverseTransformPoint(insertPointWorldCoordinate);
                         if(snap)
                         {
                             insertPoint = insertPoint.Snap(gridSize);
@@ -430,6 +545,7 @@ namespace MarTools
                     else if (Event.current.button == 1)
                     {
                         lineDrawer.points.RemoveAt(removeIndex);
+                        lineDrawer.UpdateShape();
                         EditorUtility.SetDirty(lineDrawer);
                     }
                 }
@@ -513,6 +629,8 @@ namespace MarTools
                 return Vector3.Distance(point, nearestPointOnLine);
             }
         }
+
+
     }
 #endif
 }

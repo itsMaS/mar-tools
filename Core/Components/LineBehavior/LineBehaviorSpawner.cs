@@ -56,6 +56,7 @@ namespace MarTools
 
         [HideInInspector] public List<SpawnPosition> SpawnPositions = new List<SpawnPosition>();
         [HideInInspector] public RandomUtilities.WeightedList<GameObject> Options = new RandomUtilities.WeightedList<GameObject>();
+        public bool useLocalPosition = true;
 
         public void UpdateEditor()
         {
@@ -131,7 +132,7 @@ namespace MarTools
 
                 Vector3 rot = item.rotation.eulerAngles + option.transform.localRotation.eulerAngles;
                 Vector3 scale = Vector3.Scale(option.transform.localScale, item.scale);
-                Vector3 position = item.position + option.transform.localPosition;
+                Vector3 position = item.position + (useLocalPosition ?  option.transform.localPosition : Vector3.zero);
 
                 AddElement(option, position, Quaternion.Euler(rot), scale);
             }
@@ -187,6 +188,8 @@ namespace MarTools
         private void OnSceneGUI()
         {
             var script = (target as LineBehaviorSpawner);
+
+            if (script.SpawnPositions.Count > 500) return;
             foreach (var item in script.SpawnPositions)
             {
                 Vector3 forward = item.rotation * Vector3.forward;

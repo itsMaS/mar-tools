@@ -1,12 +1,12 @@
 namespace MarTools
 {
-    using System.Collections;
-    using System.Collections.Generic;
-    using UnityEngine;
-
 #if UNITY_EDITOR
     using UnityEditor;
 #endif
+    using System.Collections;
+    using System.Collections.Generic;
+    using UnityEngine;
+    using System;
 
     public static class GizmosUtilities
     {
@@ -23,6 +23,18 @@ namespace MarTools
 
             Gizmos.DrawLine(end, end + right * arrowHeadLength);
             Gizmos.DrawLine(end, end + left * arrowHeadLength);
+        }
+
+        internal static void DrawLine(List<Vector3> controlPoints, bool looping)
+        {
+            for (int i = 1; i < controlPoints.Count; i++)
+            {
+                Gizmos.DrawLine(controlPoints[i], controlPoints[i - 1]);
+            }
+            if(looping)
+            {
+                Gizmos.DrawLine(controlPoints[0], controlPoints[controlPoints.Count - 1]);
+            }
         }
     }
 
@@ -74,6 +86,19 @@ namespace MarTools
 
             Handles.DrawLine(end, end + right * arrowHeadLength);
             Handles.DrawLine(end, end + left * arrowHeadLength);
+        }
+
+        public static void DrawVisibility(this Transform transform, float angle, float radius, Color color)
+        {
+            Color prev = Handles.color;
+            Handles.color = color;
+
+            Matrix4x4 rotationMatrix = Matrix4x4.Rotate(Quaternion.AngleAxis(-angle/2, Vector3.up));
+            // Rotate the vector using the matrix
+            Vector3 rotatedVector = rotationMatrix.MultiplyPoint3x4(Vector3.ProjectOnPlane(transform.forward, Vector3.up));
+            Handles.DrawSolidArc(transform.position, Vector3.up, rotatedVector, angle, radius);
+            Handles.color = prev;
+
         }
     }
 #endif
