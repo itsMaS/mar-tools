@@ -6,8 +6,7 @@ namespace MarTools.AI
     using System.Collections;
     using System.Collections.Generic;
     using UnityEngine;
-    using System;
-    using DG.DemiEditor;
+
 
     public class AIController : MonoBehaviour
     {
