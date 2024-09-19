@@ -38,8 +38,40 @@ namespace MarTools.AI
             this.AddManipulator(new ContentDragger());
             this.AddManipulator(new SelectionDragger());
             this.AddManipulator(new RectangleSelector());
-
+            
             Refresh();
+        }
+
+        public override EventPropagation DeleteSelection()
+        {
+            foreach (var selectable in selection)
+            {
+                if(selectable is AIGraphNode)
+                {
+                    Debug.Log(selectable);
+
+                    var node = selectable as AIGraphNode;
+
+                    List<Port> Ports = new List<Port>();
+                    Ports.AddRange(node.inputContainer.Children().OfType<Port>());
+                    Ports.AddRange(node.outputContainer.Children().OfType<Port>());
+
+                    foreach (var port in Ports)
+                    {
+                        DeleteElements(edges.Where(x => x.input == port || x.output == port));
+
+                        //foreach (var edge in port.connections.ToList())
+                        //{
+                        //    edge.input.Disconnect(edge);
+                        //    edge.output.Disconnect(edge);
+                        //    RemoveElement(edge);
+                        //    Edges.Remove(edge);
+                        //}
+                    }
+                }
+            }
+
+            return base.DeleteSelection();
         }
 
         public void ClearGraph()
@@ -128,12 +160,19 @@ namespace MarTools.AI
                 Nodes.Add(root, rootNode);
 
                 // Call a recursive method to iterate through all fields
-                LoadNodesRecursive(root, obj, 1);
+                var offsets = new Dictionary<int, float>();
+
+                LoadNodesRecursive(root, obj, 1, ref offsets);
             }
         }
 
-        private float LoadNodesRecursive(SerializedProperty property, SerializedObject serializedObject, int recursionLevel)
+        private float LoadNodesRecursive(SerializedProperty property, SerializedObject serializedObject, int recursionLevel, ref Dictionary<int, float> ElementOffsetsPerLevel)
         {
+            if(ElementOffsetsPerLevel.TryAdd(recursionLevel, 0))
+            {
+
+            }
+
             float horizontalSpacing = 600f; // Increased horizontal spacing for deeper levels
 
             // Find the Children property, assuming it is a List or Array
@@ -152,7 +191,7 @@ namespace MarTools.AI
                     SerializedProperty childProperty = childrenContainer.GetArrayElementAtIndex(i);
 
                     // Recursively check if the child has its own Children property
-                    float offset = LoadNodesRecursive(childProperty, serializedObject, recursionLevel + 1);
+                    float offset = LoadNodesRecursive(childProperty, serializedObject, recursionLevel + 1, ref ElementOffsetsPerLevel);
                     insideOffset += offset;
 
 
@@ -160,9 +199,11 @@ namespace MarTools.AI
                     var node = CreateNode(childProperty, serializedObject);
                     Nodes.Add(childProperty, node);
 
+                    ElementOffsetsPerLevel[recursionLevel] += 200;
                     // Adjust node position based on recursion level and vertical index
                     float xPos = recursionLevel * horizontalSpacing; // Increased horizontal offset based on recursion level
-                    float yPos = i * 200;
+                    float yPos = ElementOffsetsPerLevel[recursionLevel] + ElementOffsetsPerLevel[recursionLevel+1]/2;
+
 
                     node.transform.position = new Vector2(xPos, yPos);
 
@@ -177,11 +218,12 @@ namespace MarTools.AI
 
                 // Adjust node position based on recursion level and vertical index
                 float xPos = recursionLevel * horizontalSpacing; // Increased horizontal offset based on recursion level
-                float yPos = 200;
+                ElementOffsetsPerLevel[recursionLevel] += 200;
+                float yPos = ElementOffsetsPerLevel[recursionLevel];
 
                 node.transform.position = new Vector2(xPos, yPos);
 
-                float offset = LoadNodesRecursive(child, serializedObject, recursionLevel + 1);
+                float offset = LoadNodesRecursive(child, serializedObject, recursionLevel + 1, ref ElementOffsetsPerLevel);
             }
             else
             {
@@ -240,8 +282,6 @@ namespace MarTools.AI
                 {
                     if (controller.NodesUsedThisTick.TryGetValue(item.Key.managedReferenceValue as BehaviorTreeNode, out Status status))
                     {
-
-
                         Color col = status switch
                         {
                             Status.Success => Color.green,
@@ -251,16 +291,16 @@ namespace MarTools.AI
                         };
 
                         col.a = opacity;
-                        node.style.backgroundColor = new StyleColor(col);
+                        node.style.backgroundColor = col;
                     }
                     else
                     {
-                        node.style.backgroundColor = new StyleColor(Color.clear);
+                        node.style.backgroundColor = Color.clear;
                     }
                 }
                 else
                 {
-                    node.style.backgroundColor = new StyleColor(Color.clear);
+                    node.style.backgroundColor = Color.clear;
                 }
             }
         }

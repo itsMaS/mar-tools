@@ -4,6 +4,7 @@ namespace MarTools.AI
     using UnityEditor.Experimental.GraphView;
     using UnityEditor;
     using UnityEngine;
+    using UnityEngine.UIElements;
 
     public class AIGraphNode : UnityEditor.Experimental.GraphView.Node
     {
