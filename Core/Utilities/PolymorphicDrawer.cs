@@ -18,7 +18,7 @@ namespace MarTools
         }
     }
 
-    public class InterfaceDrawer<T> : PropertyDrawer
+    public class PolymorphicDrawer<T> : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
@@ -47,24 +47,21 @@ namespace MarTools
                 GUI.Label(buttonRect, new GUIContent(property.displayName));
                 if (GUI.Button(buttonRect, $"{typeof(T).Name}"))
                 {
-                    DrawSelectionMenu(property);
+                    DrawDropdown(property);
                 }
             }
 
             EditorGUI.EndProperty();
         }
 
-        private void DrawSelectionMenu(SerializedProperty property)
+        protected virtual void DrawDropdown(SerializedProperty property)
         {
             GenericMenu menu = new GenericMenu();
 
             // Loop over all implementations of the interface and add them to the menu
-            foreach (var item in EditorUtilities.GetImplementationsOfInterface<T>())
+            foreach (var item in GetDropDownOptions(property))
             {
-                var attributes = item.GetCustomAttributes(typeof(NameAttribute), false);
-                string name = attributes.Length > 0 ? ((NameAttribute)attributes[0]).Name : item.Name;
-
-                menu.AddItem(new GUIContent(name), false, () => AssignValue(property, item));
+                menu.AddItem(new GUIContent(item.Item1), false, () => item.Item2.Invoke());
             }
 
             // Add an option to remove the current value
@@ -73,14 +70,31 @@ namespace MarTools
             menu.ShowAsContext();
         }
 
-        private void DrawProperty(Rect position, SerializedProperty property)
+        protected virtual List<(string, System.Action)> GetDropDownOptions(SerializedProperty property)
+        {
+            List<(string, Action)> Options = new List<(string, Action)>();
+
+            // Loop over all implementations of the interface and add them to the menu
+            foreach (var item in EditorUtilities.GetImplementationsOfInterface<T>())
+            {
+                var attributes = item.GetCustomAttributes(typeof(NameAttribute), false);
+                string name = attributes.Length > 0 ? ((NameAttribute)attributes[0]).Name : item.Name;
+
+                Action a = () => CreateAndAssignValueOfType(property, item);
+                Options.Add((name, a));
+            }
+
+            return Options;
+        }
+
+        protected virtual void DrawProperty(Rect position, SerializedProperty property)
         {
             // Create a Rect for the button below the property fields
             Rect buttonRect = new Rect(position.x+position.width*0.5f, position.y- EditorGUIUtility.singleLineHeight, position.width*0.5f, EditorGUIUtility.singleLineHeight);
             // Draw the button with GUI.Button instead of GUILayout
             if (GUI.Button(buttonRect, $"{property.managedReferenceValue.GetType().Name}"))
             {
-                DrawSelectionMenu(property);
+                DrawDropdown(property);
             }
 
             // Adjust the position for property fields (leave space for label)
@@ -106,10 +120,17 @@ namespace MarTools
             position.y -= EditorGUIUtility.singleLineHeight;
         }
 
-        private void AssignValue(SerializedProperty property, Type type)
+        private void CreateAndAssignValueOfType(SerializedProperty property, Type type)
         {
             property.serializedObject.Update();
             property.managedReferenceValue = System.Activator.CreateInstance(type);
+            property.serializedObject.ApplyModifiedProperties();
+        }
+
+        protected void AssignValue(SerializedProperty property, object obj)
+        {
+            property.serializedObject.Update();
+            property.managedReferenceValue = obj;
             property.serializedObject.ApplyModifiedProperties();
         }
 

@@ -17,6 +17,7 @@ namespace MarTools
         public UnityEvent OnPlayForwards;
         public UnityEvent OnPlayBackwards;
         public UnityEvent OnStop;
+        public UnityEvent<float> OnTick;
 
         public bool looping = false;
         public bool yoyo = false;
@@ -36,6 +37,7 @@ namespace MarTools
 
         private float lastInterpolator;
 
+        public AnimationCurve curve;
         private void Awake()
         {
             SetPose(0);
@@ -50,18 +52,33 @@ namespace MarTools
         {
             if (playOnEnable)
             {
-                this.DelayedAction(delayRange.PickRandom(), () => PlayForwards());
-
+                PlayForwards();
             }
         }
 
         public void PlayForwards()
         {
-            PlayForward(false);
+            if(delayRange.magnitude > 0)
+            {
+                this.DelayedAction(delayRange.PickRandom(), () => PlayForward(looping));
+            }
+            else
+            {
+                PlayForward(looping);
+            }
+
         }
         public void PlayBackwards()
         {
-            PlayBackwards(false);
+            if(delayRange.magnitude > 0)
+            {
+                this.DelayedAction(delayRange.PickRandom(), () => PlayBackwards(looping));
+            }
+            else
+            {
+                PlayBackwards(looping);
+            }
+
         }
         private void PlayForward(bool repeat = false)
         {
@@ -70,10 +87,8 @@ namespace MarTools
 
             if (relative) from = lastInterpolator;
 
-            if (!repeat)
-            {
-                OnPlayForwards.Invoke();
-            }
+            OnPlayForwards.Invoke();
+
             forward = true;
             ResetCoroutine();
             coroutine = this.DelayedAction(duration, () =>
@@ -85,13 +100,14 @@ namespace MarTools
                 }
                 else if (looping)
                 {
-                    PlayForward(true);
+                    PlayForwards();
                 }
             }, t =>
             {
                 lastInterpolator = Mathf.LerpUnclamped(from, to, t);
+                OnTick.Invoke(t);
                 SetPose(lastInterpolator);
-            }, true, ease);
+            }, true, ease, curve);
         }
         private void PlayBackwards(bool repeat = false)
         {
@@ -100,10 +116,8 @@ namespace MarTools
 
             if (relative) from = lastInterpolator;
 
-            if (!repeat)
-            {
-                OnPlayBackwards.Invoke();
-            }
+            OnPlayBackwards.Invoke();
+
             forward = false;
             ResetCoroutine();
             coroutine = this.DelayedAction(duration, () =>
@@ -120,8 +134,9 @@ namespace MarTools
             }, t =>
             {
                 lastInterpolator = Mathf.LerpUnclamped(from,to, t);
+                OnTick.Invoke(t);
                 SetPose(lastInterpolator);
-            }, true, differentEaseBackwards ? backwardsEase : ease);
+            }, true, differentEaseBackwards ? backwardsEase : ease, curve);
         }
 
         public void Stop()
@@ -247,7 +262,14 @@ namespace MarTools
     
         private void SetPose(TweenCore script, float t)
         {
-            script.SetPose(Utilities.Eases[script.ease].Invoke(t));
+            if(script.ease == Utilities.Ease.Custom)
+            {
+                script.SetPose(script.curve.Evaluate(t));
+            }
+            else
+            {
+                script.SetPose(Utilities.Eases[script.ease].Invoke(t));
+            }
         }
     
         private void OnEnable()

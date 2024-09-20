@@ -24,13 +24,13 @@ namespace MarTools
 
 #if UNITY_EDITOR
     [CustomPropertyDrawer(typeof(IConditional), true)]
-    public class IConditionalDrawer : InterfaceDrawer<IConditional> { }
+    public class IConditionalDrawer : PolymorphicDrawer<IConditional> { }
 #endif
 
     public interface IGameObjectConditional : IConditional<GameObject> {}
 #if UNITY_EDITOR
     [CustomPropertyDrawer(typeof(IGameObjectConditional), true)]
-    public class IGameObjectConditionalDrawer : InterfaceDrawer<IGameObjectConditional> { }
+    public class IGameObjectConditionalDrawer : PolymorphicDrawer<IGameObjectConditional> { }
 #endif
 
     [NameAttribute("Unity/Compare Tag")]
@@ -41,6 +41,7 @@ namespace MarTools
         public bool IsTrue(GameObject value)
         {
             return value.CompareTag(tag);
+
         }
     }
 
