@@ -37,6 +37,9 @@ namespace MarTools.AI
 
 
             SetupZoom(ContentZoomer.DefaultMinScale, ContentZoomer.DefaultMaxScale);
+
+            SetupZoom(ContentZoomer.DefaultMinScale, ContentZoomer.DefaultMaxScale);
+
             // Add manipulators (for dragging, selecting, etc.)
             this.AddManipulator(new ContentDragger());
             this.AddManipulator(new SelectionDragger());
@@ -46,6 +49,8 @@ namespace MarTools.AI
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt)
         {
             evt.StopPropagation(); // Stop further propagation of the event
+            
+            Refresh();
         }
 
         public override EventPropagation DeleteSelection()
