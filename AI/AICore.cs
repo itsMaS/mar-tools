@@ -75,6 +75,9 @@ namespace MarTools.AI
     [System.Serializable]
     public abstract class BehaviorTreeNode
     {
+        [HideInInspector]
+        public Vector2 nodePosition;
+
         private bool active = false;
 
         public Status Tick(AIController controller)
@@ -82,7 +85,7 @@ namespace MarTools.AI
             if(!active)
             {
                 active = true;
-                Reset();
+                Reset(controller);
             }
 
             Status status = TickInternal(controller);
@@ -110,7 +113,7 @@ namespace MarTools.AI
         {
         }
 
-        protected virtual void Reset()
+        protected virtual void Reset(AIController controller)
         {
         }
 
@@ -142,6 +145,7 @@ namespace MarTools.AI
     [System.Serializable]
     public abstract class Composite : BehaviorTreeNode
     {
+        //[HideInInspector]
         [SerializeReference] public List<BehaviorTreeNode> Children = new List<BehaviorTreeNode>();
     }
 
@@ -188,9 +192,9 @@ namespace MarTools.AI
 
             return Status.Success;
         }
-        protected override void Reset()
+        protected override void Reset(AIController controller)
         {
-            base.Reset();
+            base.Reset(controller);
             currentChildIndex = 0;
         }
     }
@@ -247,20 +251,29 @@ namespace MarTools.AI
         }
     }
 
+    public abstract class NavMeshBehaviorTreeNode : BehaviorTreeNode
+    {
+        protected NavMeshAgent agent;
+        public float stopDistance = 0.1f;
+
+        protected override void Reset(AIController controller)
+        {
+            base.Reset(controller);
+            if (!agent) agent = controller.GetComponent<NavMeshAgent>();
+        }
+    }
+
     [Name("Movement/NavMeshAgent/Move To Position")]
     [System.Serializable]
-    public class NavMeshAgentMoveToPosition : BehaviorTreeNode
+    public class NavMeshAgentMoveToPosition : NavMeshBehaviorTreeNode
     {
-        private NavMeshAgent agent;
-
         public Vector3 targetPosition = Vector3.zero;
         protected override Status TickInternal(AIController controller)
         {
-            if(!agent) agent = controller.GetComponent<NavMeshAgent>();
 
             agent.SetDestination(targetPosition);
 
-            if(Vector3.Distance(agent.transform.position, targetPosition) < 0.5f)
+            if(Vector3.Distance(agent.transform.position, targetPosition) < stopDistance)
             {
                 return Status.Success;
             }
@@ -272,25 +285,58 @@ namespace MarTools.AI
     }
     [Name("Movement/NavMeshAgent/Follow Transform")]
     [System.Serializable]
-    public class NavMeshAgentMoveToTransform : BehaviorTreeNode
+    public class NavMeshAgentMoveToTransform : NavMeshBehaviorTreeNode
     {
-        private NavMeshAgent agent;
-
         public Transform targetTransform;
         protected override Status TickInternal(AIController controller)
         {
-            if (!agent) agent = controller.GetComponent<NavMeshAgent>();
-
             if (!targetTransform) return Status.Failure;
 
             agent.SetDestination(targetTransform.position);
 
-            if (Vector3.Distance(agent.transform.position, targetTransform.position) < 0.5f)
+            if (Vector3.Distance(agent.transform.position, targetTransform.position) < stopDistance)
             {
                 return Status.Success;
             }
             else
             {
+                return Status.Running;
+            }
+        }
+    }
+
+    [Name("Movement/NavMeshAgent/Patrol path")]
+    public class NavMeshAgentPatrol : NavMeshBehaviorTreeNode
+    {
+        public LineBehavior path;
+
+        private int nextPointIndex = 0;
+        private Vector3 nextPoint => path.worldPoints[nextPointIndex];
+
+        protected override void Reset(AIController controller)
+        {
+            base.Reset(controller);
+            nextPointIndex = 0;
+        }
+
+        protected override Status TickInternal(AIController controller)
+        {
+            if(!path) return Status.Failure;
+
+            float distanceToNextPoint = Vector3.Distance(controller.transform.position, nextPoint);
+            if (distanceToNextPoint < stopDistance)
+            {
+                nextPointIndex = nextPointIndex + 1;
+                if(nextPointIndex >= path.worldPoints.Count)
+                {
+                    return Status.Success;
+                }
+                agent.SetDestination(nextPoint);
+                return Status.Running;
+            }
+            else
+            {
+                agent.SetDestination(nextPoint);
                 return Status.Running;
             }
         }
@@ -362,10 +408,9 @@ namespace MarTools.AI
 
         private float startTimestamp;
 
-        protected override void Reset()
+        protected override void Reset(AIController controller)
         {
-            base.Reset();
-
+            base.Reset(controller);
             startTimestamp = Time.time;
         }
 
@@ -383,4 +428,67 @@ namespace MarTools.AI
             return Status.Success;
         }
     }
+
+    #region Animator
+
+    public abstract class SetAnimatorParameterBase<T> : BehaviorTreeNode
+    {
+        public string parameterName;
+        public T parameter;
+
+        private Animator an;
+
+        protected override void Reset(AIController controller)
+        {
+            base.Reset(controller);
+            if(!an) an = controller.GetComponent<Animator>();
+        }
+
+        protected abstract void SetParameter(Animator an, string name, T param);
+
+        protected override Status TickInternal(AIController controller)
+        {
+            SetParameter(an, parameterName, parameter);
+            return Status.Success;
+        }
+    }
+
+
+    [Name("Animator/Set float")]
+    public class SetAnimatorParameterFloat : SetAnimatorParameterBase<float>
+    {
+        protected override void SetParameter(Animator an, string name, float param)
+        {
+            an.SetFloat(name, param);
+        }
+    }
+
+
+    [Name("Animator/Set bool")]
+    public class SetAnimatorParameterBool : SetAnimatorParameterBase<bool>
+    {
+        protected override void SetParameter(Animator an, string name, bool param)
+        {
+            an.SetBool(name, param);
+        }
+    }
+
+    [Name("Animator/Set int")]
+    public class SetAnimatorParameterInt : SetAnimatorParameterBase<int>
+    {
+        protected override void SetParameter(Animator an, string name, int param)
+        {
+            an.SetInteger(name, param);
+        }
+    }
+
+    [Name("Animator/Set trigger")]
+    public class SetAnimatorTrigger : SetAnimatorParameterBase<object>
+    {
+        protected override void SetParameter(Animator an, string name, object param)
+        {
+            an.SetTrigger(name);
+        }
+    }
+    #endregion
 }

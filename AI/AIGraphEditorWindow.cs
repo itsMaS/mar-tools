@@ -25,8 +25,10 @@ namespace MarTools.AI
         {
             var toolbar = new Toolbar();
 
-            var btn = new Button(() => graphView.Refresh()) { text = "Refresh" };
-            toolbar.Add(btn);
+            toolbar.Add(new Button(() => graphView.Load())
+            {
+                text = "Load",
+            });
 
             rootVisualElement.Add(toolbar);
         }
