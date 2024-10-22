@@ -295,7 +295,7 @@ namespace MarTools
         private bool snap => EditorPrefs.GetBool("Snapping", false);
         private bool flat => EditorPrefs.GetBool("Flat", true);
 
-        private float lastHeight => lineDrawer.points.Count == 0 ? 0 : lineDrawer.worldPoints.Last().y;
+        private float lastHeight => lineDrawer.points.Count == 0 ? lineDrawer.transform.position.y : lineDrawer.worldPoints.Last().y;
 
         private bool editing = false;
 

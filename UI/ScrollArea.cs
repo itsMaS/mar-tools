@@ -73,19 +73,23 @@ namespace MarTools
             var selected = Elements.Find(x => x.selected);
 
             target = new Vector2(Mathf.Clamp(target.x, -content.sizeDelta.x + Mathf.Min(rectTransform.sizeDelta.x, content.sizeDelta.x), 0), target.y);
-
+            
             if(selected != null)
             {
                 var offsets = GetCornerOffsets(selected.rectTr, rectTransform);
                 //Debug.Log($"Offset:{offsets[0].x} | {offsets[2].x} Width:{rectTransform.sizeDelta.x}");
 
+                //Debug.Log($"G:{offsets[0]} O:{offsets[2]}");
+
                 if (offsets[2].x > 0)
                 {
                     target = content.anchoredPosition + new Vector2(-offsets[2].x, 0);
+                    //Debug.Log("move right");
                 }
                 if (offsets[0].x < 0)
                 {
                     target = content.anchoredPosition + new Vector2(-offsets[0].x, 0);
+                    //Debug.Log("move left");
                 }
             }
 
