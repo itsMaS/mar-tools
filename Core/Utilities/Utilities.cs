@@ -73,18 +73,26 @@ namespace MarTools
 
         public static float Remap(this float input, Vector2 from, Vector2 to)
         {
-            return Mathf.Lerp(to.x, to.y, Mathf.Clamp01(Mathf.InverseLerp(from.x, from.y, input)));
+            return Remap(input, from.x, from.y, to.x, to.y);
         }
         public static float Remap(this float input, float i1, float i2, float o1 = 1, float o2 = 1, bool clamp = true)
         {
-            return Mathf.LerpUnclamped(o1, o2, Mathf.InverseLerp(i1, i2, input));
+            float min = Mathf.Min(o1, o2);
+            float max = Mathf.Max(o1, o2);
+
+            float result = Mathf.LerpUnclamped(o1, o2, Mathf.InverseLerp(i1, i2, input));
+
+            if (!clamp) return result;
+            return Mathf.Clamp(result, min, max);
         }
         
         public static Vector2 FindClosest(this IEnumerable<Vector2> collection, Vector2 target, out float closestDistance)
         {
             return FindClosest<Vector2>(collection, target, item => item, out closestDistance);
         }
-        
+
+
+
         public enum Ease
         {
             Linear,

@@ -31,7 +31,9 @@ namespace MarTools
         public bool resetIneractionTimeOnCancel = false;
         public bool resetInteractionTimeOnInteract = true;
         public float interactionTImeDecayPerSecond = 0;
-    
+
+        public string promptText;
+
         public float interactionProgressNormalized { get; private set; }
 
         public Vector3 promptOffset = Vector3.zero;

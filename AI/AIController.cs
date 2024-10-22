@@ -10,27 +10,9 @@ namespace MarTools.AI
 
     public class AIController : MonoBehaviour
     {
-        public List<BehaviorTreeNode> AllNodes = new List<BehaviorTreeNode>();
-
-        public void AddNode()
-        {
-            AllNodes.Add(new Sequence());
-        }
-
-        public void RemoveNode()
-        {
-
-        }
-
-
-
-
-
-
+        [SerializeReference] public Sequence rootNode;
         public Dictionary<BehaviorTreeNode, Status> NodesUsedThisTick = new Dictionary<BehaviorTreeNode, Status>();
 
-
-        [SerializeReference] public BehaviorTreeNode rootNode;
 
         public float tickInterval = 0.1f;
         public float lastTickTimestamp { get; private set; }
@@ -44,23 +26,10 @@ namespace MarTools.AI
                 yield return wfs;
                 NodesUsedThisTick.Clear();
                 var result = rootNode.Tick(this);
+                
                 lastTickTimestamp = Time.time;
-
-                if(result != Status.Running)
-                {
-                    Debug.Log($"The tree has exited with result of {result}");
-                    break;
-                }
             }
 
-        }
-
-        public List<(BehaviorTreeNode, BehaviorTreeNode)> FetchNodesWithParents()
-        {
-            var result = new List<(BehaviorTreeNode, BehaviorTreeNode)>();
-            result.Add((rootNode, null));
-            result.AddRange(FetchAllNodes(rootNode));
-            return result;
         }
 
         public List<(BehaviorTreeNode, BehaviorTreeNode)> FetchAllNodes(BehaviorTreeNode root)

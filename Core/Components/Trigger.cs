@@ -30,8 +30,8 @@ namespace MarTools
         [SerializeReference]
         public IGameObjectConditional checkFunction = new CompareTag();
 
-        public UnityEvent OnEntered;
-        public UnityEvent OnExited;
+        public UnityEvent<GameObject> OnEntered;
+        public UnityEvent<GameObject> OnExited;
 
         public UnityEvent OnComplete;
         public UnityEvent OnIncomplete;
@@ -63,7 +63,7 @@ namespace MarTools
                 }
             }
 
-            OnEntered.Invoke();
+            OnEntered.Invoke(other.gameObject);
         }
 
         private void Complete()
@@ -96,7 +96,7 @@ namespace MarTools
                 }
             }
 
-            OnExited.Invoke();
+            OnExited.Invoke(other.gameObject);
         }
 
         private bool CheckObject(Collider col)
