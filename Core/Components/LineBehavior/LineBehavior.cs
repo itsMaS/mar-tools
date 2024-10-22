@@ -282,6 +282,11 @@ namespace MarTools
 
             return distanceAtClosestPoint;
         }
+
+        public void SetPoints(List<Vector3> Points)
+        {
+            points = Points.ConvertAll(x => transform.InverseTransformVector(x));
+        }
     }
 
 #if UNITY_EDITOR
