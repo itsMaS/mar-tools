@@ -1,9 +1,10 @@
-#if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 
 namespace MarTools
@@ -18,6 +19,7 @@ namespace MarTools
         }
     }
 
+#if UNITY_EDITOR
     public class PolymorphicDrawer<T> : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
@@ -173,5 +175,5 @@ namespace MarTools
             return totalHeight;
         }
     }
-}
 #endif
+}

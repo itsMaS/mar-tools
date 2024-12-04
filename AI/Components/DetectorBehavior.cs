@@ -20,17 +20,17 @@ namespace MarTools.AI
             [HideInInspector] public bool overrideOrigin = false;
             [HideInInspector] public Transform originOverride = null;
 
-            public UnityEvent<IDetectable> OnDetectStart;
-            public UnityEvent<IDetectable> OnDetectEnd;
+            public UnityEvent<GameObject> OnDetectStart;
+            public UnityEvent<GameObject> OnDetectEnd;
 
             public float viewRadius = 10;
             public float viewAngle = 45f;
             public LayerMask obstructionMask;
 
-            public List<IDetectable> ObjectsInView = new List<IDetectable>();
+            public List<GameObject> ObjectsInView = new List<GameObject>();
             private void FixedUpdate()
             {
-                List<IDetectable> NewObjectsInView = new List<IDetectable>();
+                List<GameObject> NewObjectsInView = new List<GameObject>();
 
                 foreach (var item in Physics.OverlapCapsule(origin.position - Vector3.up * 5, origin.position + Vector3.up * 5, viewRadius))
                 {
@@ -59,12 +59,12 @@ namespace MarTools.AI
 
                     // Object is in view
 
-                    NewObjectsInView.Add(detectable);
+                    NewObjectsInView.Add(detectable.transform.gameObject);
                 
-                    if(!ObjectsInView.Contains(detectable))
+                    if(!ObjectsInView.Contains(detectable.transform.gameObject))
                     {
-                        ObjectsInView.Add(detectable);
-                        OnDetectStart.Invoke(detectable);
+                        ObjectsInView.Add(detectable.transform.gameObject);
+                        OnDetectStart.Invoke(detectable.transform.gameObject);
                     }
                     Debug.DrawLine(origin.position, item.transform.position, Color.red, Time.fixedDeltaTime);
                 }
@@ -74,11 +74,6 @@ namespace MarTools.AI
                     ObjectsInView.Remove(detectable);
                     OnDetectEnd.Invoke(detectable);
                 }
-            }
-
-            public Status IsSeeingSomething()
-            {
-                return ObjectsInView.Count > 0 ? Status.Success : Status.Failure;
             }
         }
 

@@ -52,6 +52,7 @@ namespace MarTools
 
         private Coroutine navigationComboCoroutine;
 
+        public bool isPointerOverUI { get; private set; } = false;
         private void Awake()
         {
             eventSystem = GetComponent<EventSystem>();
@@ -308,6 +309,8 @@ namespace MarTools
                     List<RaycastResult> results = new List<RaycastResult>();
                     graphicRaycaster.Raycast(pointerData, results);
     
+                    isPointerOverUI = results.Count > 0;
+
                     foreach (RaycastResult result in results)
                     {
                         UIElement button = result.gameObject.GetComponent<UIElement>();
@@ -319,6 +322,10 @@ namespace MarTools
 
                     if(!holdingSubmit)
                         SelectButton(MouseHoveredButtons.FirstOrDefault());
+                }
+                else
+                {
+                    isPointerOverUI = false;
                 }
             }
 
@@ -445,6 +452,8 @@ namespace MarTools
 
         public void SubscribeInput(InputActionReference r, UnityAction<InputAction.CallbackContext> action)
         {
+            if (r == null) return;
+
             if (EventDictionary.TryGetValue(r.action.name, out var context))
             {
                 context.AddListener(action);

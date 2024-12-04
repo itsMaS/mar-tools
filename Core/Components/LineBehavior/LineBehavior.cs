@@ -186,6 +186,11 @@ namespace MarTools
         internal void UpdateShape()
         {
             if (!autoUpdate) return;
+            ForceUpdateShape();
+        }
+
+        public void ForceUpdateShape()
+        {
             foreach (var item in GetComponentsInChildren<LineBehaviorSpawner>())
             {
                 item.UpdateShape();
@@ -282,6 +287,11 @@ namespace MarTools
 
             return distanceAtClosestPoint;
         }
+
+        public void SetPoints(List<Vector3> Points)
+        {
+            points = Points.ConvertAll(x => transform.InverseTransformVector(x));
+        }
     }
 
 #if UNITY_EDITOR
@@ -295,7 +305,7 @@ namespace MarTools
         private bool snap => EditorPrefs.GetBool("Snapping", false);
         private bool flat => EditorPrefs.GetBool("Flat", true);
 
-        private float lastHeight => lineDrawer.points.Count == 0 ? 0 : lineDrawer.worldPoints.Last().y;
+        private float lastHeight => lineDrawer.points.Count == 0 ? lineDrawer.transform.position.y : lineDrawer.worldPoints.Last().y;
 
         private bool editing = false;
 
@@ -362,6 +372,11 @@ namespace MarTools
                 lineDrawer.transform.position = average;
     
                 lineDrawer.points = worldPositions.ConvertAll(p => lineDrawer.transform.InverseTransformPoint(p));
+            }
+
+            if(GUILayout.Button("Generate"))
+            {
+                lineDrawer.ForceUpdateShape();
             }
         }
     

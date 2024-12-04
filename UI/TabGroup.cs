@@ -11,6 +11,7 @@ namespace MarTools
     {
         public UnityEvent OnNextTab;
         public UnityEvent OnPreviousTab;
+        public UnityEvent<TabNode> OnSelected;
 
         private List<TabNode> TabNodes = new List<TabNode>();
 
@@ -43,11 +44,14 @@ namespace MarTools
         public void Select(int index)
         {
             selectedIndex = index;
+            TabNode selected = null;
+
             for (int i = 0; i < TabNodes.Count; i++)
             {
                 TabNode node = TabNodes[i];
                 if(i == selectedIndex)
                 {
+                    selected = node;
                     node.Select();
                 }
                 else
@@ -55,6 +59,8 @@ namespace MarTools
                     node.Deselect();
                 }
             }
+
+            OnSelected.Invoke(selected);
         }
 
         public void Select(TabNode node)
