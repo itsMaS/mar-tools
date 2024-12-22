@@ -15,7 +15,9 @@ namespace MarTools
     {
         public UnityEvent OnComplete;
         public UnityEvent OnPlayForwards;
+        public UnityEvent OnPlayedForwards;
         public UnityEvent OnPlayBackwards;
+        public UnityEvent OnPlayedBackwards;
         public UnityEvent OnStop;
         public UnityEvent<float> OnTick;
 
@@ -23,6 +25,7 @@ namespace MarTools
         public bool yoyo = false;
         public bool playOnEnable = false;
         public bool relative = true;
+        public bool timeScaled = true;
         public Vector2 delayRange = Vector2.zero;
 
         public Utilities.Ease ease = Utilities.Ease.InOutQuad;
@@ -60,7 +63,7 @@ namespace MarTools
         {
             if(delayRange.magnitude > 0)
             {
-                this.DelayedAction(delayRange.PickRandom(), () => PlayForward(looping));
+                this.DelayedAction(delayRange.PickRandom(), () => PlayForward(looping), null, timeScaled);
             }
             else
             {
@@ -72,7 +75,7 @@ namespace MarTools
         {
             if(delayRange.magnitude > 0)
             {
-                this.DelayedAction(delayRange.PickRandom(), () => PlayBackwards(looping));
+                this.DelayedAction(delayRange.PickRandom(), () => PlayBackwards(looping), null, timeScaled);
             }
             else
             {
@@ -93,6 +96,7 @@ namespace MarTools
             ResetCoroutine();
             coroutine = this.DelayedAction(duration, () =>
             {
+                OnPlayedForwards.Invoke();
                 Complete();
                 if (yoyo)
                 {
@@ -107,7 +111,7 @@ namespace MarTools
                 lastInterpolator = Mathf.LerpUnclamped(from, to, t);
                 OnTick.Invoke(t);
                 SetPose(lastInterpolator);
-            }, true, ease, curve);
+            }, timeScaled, ease, curve);
         }
         private void PlayBackwards(bool repeat = false)
         {
@@ -122,6 +126,7 @@ namespace MarTools
             ResetCoroutine();
             coroutine = this.DelayedAction(duration, () =>
             {
+                OnPlayedBackwards.Invoke();
                 if (looping && yoyo)
                 {
                     PlayForwards();
@@ -136,7 +141,7 @@ namespace MarTools
                 lastInterpolator = Mathf.LerpUnclamped(from,to, t);
                 OnTick.Invoke(t);
                 SetPose(lastInterpolator);
-            }, true, differentEaseBackwards ? backwardsEase : ease, curve);
+            }, timeScaled, differentEaseBackwards ? backwardsEase : ease, curve);
         }
 
         public void Stop()
