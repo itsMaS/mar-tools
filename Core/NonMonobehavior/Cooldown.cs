@@ -18,11 +18,21 @@ namespace MarTools
             performTimestamp = -duration;
         }
 
+        public void Reset()
+        {
+            performTimestamp = timeScaled ? Time.time : Time.unscaledTime;
+        }
+
+        public bool CanBePerformed()
+        {
+            return cooldownProgress >= 1;
+        }
+
         public bool TryPerform()
         {
-            if(cooldownProgress >= 1)
+            if(CanBePerformed())
             {
-                performTimestamp = timeScaled ? Time.time : Time.unscaledTime;
+                Reset();
                 return true;
             }
             else
