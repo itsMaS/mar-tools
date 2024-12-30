@@ -12,6 +12,7 @@ namespace MarTools
 
 
         public float totalValue = 1;
+        public Vector2 mapping = new Vector2(0, 1);
         public float currentValue { get; private set; } = -1;
         public float currentNormalizedValue => currentValue / totalValue;
 
@@ -58,14 +59,14 @@ namespace MarTools
             // Subtract
             if(currentNormalizedValue > newNormalizedValue)
             {
-                topFill.fillAmount = newNormalizedValue;
+                topFill.fillAmount = newNormalizedValue.Remap(new Vector2(0, 1), mapping);
                 SetTarget(bottomFill, newNormalizedValue);
                 OnSubtracted.Invoke();
             }
             // Additive
             else
             {
-                bottomFill.fillAmount = newNormalizedValue;
+                bottomFill.fillAmount = newNormalizedValue.Remap(new Vector2(0, 1), mapping);
                 SetTarget(topFill, newNormalizedValue);
                 OnAdded.Invoke();
             }
@@ -76,13 +77,13 @@ namespace MarTools
 
         private Coroutine SetTarget(Image image, float target)
         {
-            float startValue = image.fillAmount;
+            float startValue = image.fillAmount.Remap(mapping, new Vector2(0,1));
             return this.DelayedAction(0.5f, () =>
             {
 
             }, t =>
             {
-                image.fillAmount = Mathf.Lerp(startValue, target, t);
+                image.fillAmount = Mathf.Lerp(startValue, target, t).Remap(new Vector2(0,1), mapping);
             }, false, Utilities.Ease.OutQuad);
         }
     }

@@ -37,14 +37,14 @@ namespace MarTools.AI
                     // Collider must have a detectable component to be detected
                     if (!item.TryGetComponent<IDetectable>(out var detectable)) continue;
 
-                    Vector3 toTarget = item.transform.position - origin.position;
+                    Vector3 toTarget = detectable.transform.position - origin.position;
                     Vector3 viewProjection = Vector3.ProjectOnPlane(origin.forward, Vector3.up);
                     Vector3 toTargetProjection = Vector3.ProjectOnPlane(toTarget, Vector3.up);
                     float angle = Vector3.Angle(viewProjection, toTargetProjection);
 
                     if (angle > viewAngle / 2)
                     {
-                        Debug.DrawLine(origin.position, item.transform.position, Color.white * new Color(1, 1, 1, 0.05f), Time.fixedDeltaTime);
+                        Debug.DrawLine(origin.position, detectable.transform.position, Color.white * new Color(1, 1, 1, 0.05f), Time.fixedDeltaTime);
                         // Failure due to angle check
                         continue;
                     }
@@ -52,7 +52,7 @@ namespace MarTools.AI
                     if (Physics.Raycast(origin.position, toTarget, out RaycastHit hit, toTarget.magnitude, obstructionMask))
                     {
                         Debug.DrawLine(origin.position, hit.point, Color.red * new Color(1, 1, 1, 0.5f), Time.fixedDeltaTime);
-                        Debug.DrawLine(hit.point, item.transform.position, Color.white * new Color(1, 1, 1, 0.5f), Time.fixedDeltaTime);
+                        Debug.DrawLine(hit.point, detectable.transform.position, Color.white * new Color(1, 1, 1, 0.5f), Time.fixedDeltaTime);
                         // Failure due to obstruction
                         continue;
                     }
@@ -66,7 +66,7 @@ namespace MarTools.AI
                         ObjectsInView.Add(detectable.transform.gameObject);
                         OnDetectStart.Invoke(detectable.transform.gameObject);
                     }
-                    Debug.DrawLine(origin.position, item.transform.position, Color.red, Time.fixedDeltaTime);
+                    Debug.DrawLine(origin.position, detectable.transform.position, Color.red, Time.fixedDeltaTime);
                 }
 
                 foreach (var detectable in ObjectsInView.Except(NewObjectsInView).ToList())
