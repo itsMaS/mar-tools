@@ -28,7 +28,7 @@ namespace MarTools
 
         private void Update()
         {
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, target, Time.deltaTime * 20);
+            transform.rotation = Quaternion.Lerp(transform.rotation, target, Time.deltaTime * 20);
         }
     }
 }
