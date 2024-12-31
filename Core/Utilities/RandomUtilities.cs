@@ -129,7 +129,27 @@ namespace MarTools
                 throw new System.Exception("The supplied container is empty or null");
             }
         }
-    
+
+        public static T PickRandomAndRemove<T>(this List<T> collection)
+        {
+            var t = collection.PickRandom();
+            collection.Remove(t);
+
+            return t;
+        }
+
+        public static List<T> PickRandomAndRemove<T>(this List<T> collection, int amount)
+        {
+            List<T> Picked = new List<T>();
+            for (int i = 0; i < amount; i++)
+            {
+                var p = collection.PickRandomAndRemove();
+                Picked.Add(p);
+            }
+
+            return Picked;
+        }
+
         /// <summary>
         /// Picks a random float from the Vector2 array range (inclusive)
         /// </summary>

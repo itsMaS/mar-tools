@@ -11,6 +11,8 @@ namespace MarTools
 
         public bool rotateAlongNormal = true;
 
+        Quaternion target;
+
         public override void SetPose(float t)
         {
             if (!lineBehavior) return;
@@ -20,8 +22,13 @@ namespace MarTools
 
             if(rotateAlongNormal)
             {
-                transform.rotation = Quaternion.LookRotation(p.Item2.Item1, Vector3.up);
+                target = Quaternion.LookRotation(p.Item2.Item1, Vector3.up);
             }
+        }
+
+        private void Update()
+        {
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, target, Time.deltaTime * 20);
         }
     }
 }
