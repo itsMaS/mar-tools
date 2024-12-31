@@ -36,7 +36,7 @@ namespace MarTools
         }
         public void BeginInteract()
         {
-            if (hovered)
+            if (hovered && hovered.CanBeInteracted(this))
             {
                 interactable = hovered;
                 if(hovered.InteractStart(this))
@@ -81,38 +81,38 @@ namespace MarTools
                 return;
             }
 
-            //TryCastFirst(out Interactable newHovered, interactionBlockMask, raycastDistance, raycastWidth, item => item.CanBeInteracted(this));
-
-            // REWRITE
-
             Interactable newHovered = null;
 
-            List<Collider> Colliders = Physics.SphereCastAll(raycastPosition.position, raycastWidth, raycastPosition.forward, raycastDistance).ToList().OrderBy(x => Vector3.Distance(x.point, raycastPosition.position)).ToList().ConvertAll(x => x.collider);
-            foreach (var item in Physics.OverlapSphere(raycastPosition.position, raycastWidth))
-            {
-                Colliders.Insert(0,item);
-            }
+            var Hits = Physics.SphereCastAll(raycastPosition.position, raycastWidth, raycastPosition.forward, raycastDistance, interactionBlockMask, QueryTriggerInteraction.Collide);
+            //foreach (var item in Physics.OverlapSphere(raycastPosition.position, raycastWidth, interactionBlockMask, QueryTriggerInteraction.UseGlobal))
+            //{
+            //    Colliders.Insert(0, item);
+            //}
 
-            foreach (var item in Colliders)
+            //Debug.Log(string.Join("\n", Hits.Select(hit => hit.collider.name)));
+
+
+            foreach (var item in Hits)
             {
                 // Skip if collider is inside this gameobject's hierarchy
-                if (ChildrenColliders.Contains(item)) continue;
+                if (ChildrenColliders.Contains(item.collider)) continue;
 
-                if(item.TryGetComponent<Interactable>(out var inter))
+                Vector3 point = (item.point == Vector3.zero ? item.collider.ClosestPoint(raycastPosition.position) : item.point);
+
+                //Debug.DrawLine(point, raycastPosition.position, Color.cyan);
+
+                if(item.collider.TryGetComponent<Interactable>(out var inter))
                 {
-                    if (!inter.CanBeInteracted(this)) continue;
+                    Vector3 toInteractable = point  - raycastPosition.position;
+                    if (!Physics.Raycast(raycastPosition.position, toInteractable, out RaycastHit hitInfo, toInteractable.magnitude, interactionBlockMask, QueryTriggerInteraction.Ignore))
+                    {
+                        if (!inter.CanBeInteracted(this)) continue;
 
-                    newHovered = inter;
-                    break;
-                }
-                else
-                {
-
-                    if (item.isTrigger) continue;
-                    else break;
+                        newHovered = inter;
+                        break;
+                    }
                 }
             }
-            //
 
             if(newHovered != hovered)
             {

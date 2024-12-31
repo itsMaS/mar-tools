@@ -521,5 +521,15 @@ namespace MarTools
 
             return matchingFields;
         }
+
+        // Extension method to get a deviated Vector3 within a specified angle
+        public static Vector3 RandomDeviation(this Vector3 original, float maxAngle)
+        {
+            // Create a random rotation quaternion within the specified max angle around a random axis
+            Quaternion randomRotation = Quaternion.AngleAxis(UnityEngine.Random.Range(0f, maxAngle), UnityEngine.Random.onUnitSphere);
+
+            // Apply the rotation to the original vector
+            return randomRotation * original;
+        }
     }
 }

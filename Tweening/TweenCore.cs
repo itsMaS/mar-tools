@@ -9,7 +9,8 @@ namespace MarTools
     using UnityEngine.Events;
     #if UNITY_EDITOR
     using UnityEditor;
-    #endif
+    using DG.Tweening;
+#endif
 
     public abstract class TweenCore : MonoBehaviour, IGameMechanic
     {

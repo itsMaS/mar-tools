@@ -75,27 +75,26 @@ namespace MarTools
 
         public GameObject AddElement(GameObject go, Vector3 position, Quaternion rotation, Vector3 scale)
         {
+            GameObject instantiated = null;
+
 #if UNITY_EDITOR
-            if (!Application.isPlaying && PrefabUtility.GetPrefabAssetType(go) != PrefabAssetType.NotAPrefab)
+            if (!Application.isPlaying && PrefabUtility.GetPrefabAssetType(go) != PrefabAssetType.NotAPrefab && !go.transform.parent)
             {
-                GameObject instantiated = UnityEditor.PrefabUtility.InstantiatePrefab(go) as GameObject;
+                instantiated = UnityEditor.PrefabUtility.InstantiatePrefab(go) as GameObject;
                 instantiated.transform.position = position;
                 instantiated.transform.rotation = rotation;
-                instantiated.transform.localScale = scale;
-
                 instantiated.transform.parent = parent;
-
-                return instantiated;
             }
             else
             {
 #endif
-                GameObject instantiated = Instantiate(go, position, rotation, parent);
-                instantiated.transform.localScale = scale;
-                return instantiated;
+                instantiated = Instantiate(go, position, rotation, parent);
 #if UNITY_EDITOR
             }
 #endif
+            instantiated.gameObject.SetActive(true);
+            instantiated.transform.localScale = scale;
+            return instantiated;
 
         }
 
@@ -146,6 +145,7 @@ namespace MarTools
     }
 
 #if UNITY_EDITOR
+    [CanEditMultipleObjects]
     [CustomEditor(typeof(LineBehaviorSpawner), true)]
     public class LineBehaviorSpawnerEditor : Editor
     {

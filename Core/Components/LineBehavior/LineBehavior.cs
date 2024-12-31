@@ -295,6 +295,7 @@ namespace MarTools
     }
 
 #if UNITY_EDITOR
+    [CanEditMultipleObjects]
     [CustomEditor(typeof(LineBehavior))]
     public class LineDrawerEditor : Editor
     {

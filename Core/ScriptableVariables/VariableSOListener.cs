@@ -6,7 +6,7 @@ using UnityEngine.Events;
 
 namespace MarTools
 {
-    public abstract class VariableSOMonoBehavior<T> : MonoBehaviour where T : VariableSO<T>
+    public abstract class VariableSOListener<T> : MonoBehaviour
     {
         public UnityEvent<T> OnValueChanged;
         public VariableSO<T> targetVariable;

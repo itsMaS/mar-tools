@@ -46,14 +46,26 @@ namespace MarTools
 
         private Coroutine cooldownCoroutine;
 
+        private List<InteractionController> CurrentControllers = new List<InteractionController>();
+
         public void Hover(InteractionController controller)
         {
-            OnHover.Invoke(controller);
+            CurrentControllers.Add(controller);
+
+            if(CurrentControllers.Count == 1)
+            {
+                OnHover.Invoke(controller);
+            }
         }
     
         public void Unhover(InteractionController controller)
         {
-            OnUnhover.Invoke(controller);
+            CurrentControllers.Remove(controller);
+
+            if(CurrentControllers.Count == 0)
+            {
+                OnUnhover.Invoke(controller);
+            }
         }
     
         public bool InteractStart(InteractionController controller)

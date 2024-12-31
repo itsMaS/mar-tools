@@ -19,6 +19,8 @@ namespace MarTools
     #if UNITY_EDITOR
         [SerializeField, TextArea] string description;
         [SerializeField] float size = 10;
+
+        [SerializeField] bool scaleWithDistance = true;
     
         public Vector2 fontSizeBounds = new Vector2(1, 30);
     
@@ -32,20 +34,22 @@ namespace MarTools
             GUIStyle style = new GUIStyle();
     
             float scale = HandleUtility.GetHandleSize(position);
-            int fontSize = Mathf.RoundToInt(size / scale);
+            int fontSize = scaleWithDistance ? Mathf.RoundToInt(size / scale) : Mathf.RoundToInt(size);
     
             float distanceToEdge = Mathf.Min(Mathf.Abs(fontSizeBounds.x-fontSize), Mathf.Abs(fontSizeBounds.y-fontSize));
             Color color = Color.white;
             color.a = Mathf.InverseLerp(20, 10, distanceToEdge);
-    
-            if(fontSize > fontSizeBounds.x && fontSize < fontSizeBounds.y)
-            {
+
+            Handles.color = color;
+
+            //if(fontSize > fontSizeBounds.x && fontSize < fontSizeBounds.y)
+            //{
                 style.fontSize = fontSize;
                 style.alignment = TextAnchor.MiddleCenter;
                 style.normal.textColor = color;
     
                 Handles.Label(position, text, style);
-            }
+            //}
         }
     #endif
     }
