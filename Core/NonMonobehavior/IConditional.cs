@@ -62,4 +62,23 @@ namespace MarTools
             return Conditionals.TrueForAll(x => x.IsTrue(value));
         }
     }
+
+    [NameAttribute("Unity/Name Check")]
+    public class NameChecker : IGameObjectConditional
+    {
+        [System.Serializable]
+        public enum CheckOperation
+        {
+            Exact,
+            Contains,
+        }
+
+        public string name;
+        public CheckOperation operation;
+
+        public bool IsTrue(GameObject value)
+        {
+            return operation == CheckOperation.Exact ? value.name == name : value.name.Contains(name);
+        }
+    }
 }

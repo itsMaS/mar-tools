@@ -75,6 +75,12 @@ namespace MarTools
         {
             return Remap(input, from.x, from.y, to.x, to.y);
         }
+
+        public static float Distance(this float input, float destination)
+        {
+            return Mathf.Abs(destination - input);
+        }
+
         public static float Remap(this float input, float i1, float i2, float o1 = 1, float o2 = 1, bool clamp = true)
         {
             float min = Mathf.Min(o1, o2);

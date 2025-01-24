@@ -207,8 +207,9 @@ namespace MarTools
             return Utilities.IsPointInside(smoothWorldPoints, point);
         }
 
-        public (Vector3, Vector3) GetClosestPointOnLine(Vector3 targetPoint)
+        public (Vector3, Vector3) GetClosestPointOnLine(Vector3 targetPoint, out int index)
         {
+            index = -1;
             List<Vector3> points = smoothWorldPoints;
 
             if (points.Count < 2)
@@ -229,6 +230,7 @@ namespace MarTools
 
                 if (distance < minDistance)
                 {
+                    index = i;
                     minDistance = distance;
                     closestPoint = closestPointOnSegment;
                     normalAtPoint = lineEnd- lineStart;

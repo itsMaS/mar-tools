@@ -109,7 +109,6 @@ namespace MarTools
             return EnteredGameobjects.Count > 0;
         }
 
-
         private void OnDrawGizmos()
         {
             Color col = Color.gray;
