@@ -11,7 +11,7 @@ namespace MarTools
             {
                 if(!_instance)
                 {
-                    _instance = FindFirstObjectByType<T>();
+                    _instance = FindFirstObjectByType<T>(FindObjectsInactive.Include);
                     if(_instance)
                     {
                         _instance.Initialize();
