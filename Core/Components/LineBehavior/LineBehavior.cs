@@ -1,15 +1,14 @@
 namespace MarTools
 {
+#if UNITY_EDITOR
+    using UnityEditor;
+#endif
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using Unity.VisualScripting;
     using UnityEngine;
     using UnityEngine.Events;
-#if UNITY_EDITOR
-    using UnityEditor;
     using UnityEngine.UIElements;
-#endif
 
     [SelectionBase]
     public class LineBehavior : MonoBehaviour
