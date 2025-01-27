@@ -13,22 +13,26 @@ namespace MarTools
         public T from;
         public T to;
     
-        Material mat;
-    
+        MaterialPropertyBlock block;
+        Renderer rend;
+
         public override void SetPose(float t)
         {
-            if (!Application.isPlaying) return;
-    
-            if(!mat)
+            if(!rend)
             {
-                var renderer = GetComponent<Renderer>();
-                mat = renderer.materials[materialIndex];
+                rend = GetComponent<Renderer>();
             }
     
-            SetParameter(mat, parameterID, from, to, t);
+            if(block == null ) 
+            {
+                block = new MaterialPropertyBlock();
+            }
+
+            SetParameter(ref block, parameterID, from, to, t);
+            rend.SetPropertyBlock(block, materialIndex);
         }
 
-        protected abstract void SetParameter(Material mat, string parameterID, T from, T to, float t);
+        protected abstract void SetParameter(ref MaterialPropertyBlock block, string parameterID, T from, T to, float t);
     }
     
 }

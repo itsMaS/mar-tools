@@ -6,9 +6,9 @@ namespace MarTools
 
     public class MaterialColorParameterLerp : MaterialParameterLerp<Color>
     {
-        protected override void SetParameter(Material mat, string parameterID, Color from, Color to, float t)
+        protected override void SetParameter(ref MaterialPropertyBlock block, string parameterID, Color from, Color to, float t)
         {
-            mat.SetColor(parameterID, Color.Lerp(from, to, t));
+            block.SetColor(parameterID, Color.Lerp(from, to, t));
         }
     }
 }

@@ -28,6 +28,8 @@ namespace MarTools
         public bool timeScaled = true;
         public Vector2 delayRange = Vector2.zero;
 
+        [Range(0,1)] public float startingPosition = 0;
+
         public Utilities.Ease ease = Utilities.Ease.InOutQuad;
 
         public bool differentEaseBackwards = false;
@@ -43,7 +45,7 @@ namespace MarTools
         public AnimationCurve curve;
         private void Awake()
         {
-            SetPose(0);
+            SetPose(startingPosition);
         }
 
         protected virtual void Reset()
@@ -205,6 +207,9 @@ namespace MarTools
     {
         float pose;
         bool playing = false;
+
+
+        TweenCore script;
     
         public override void OnInspectorGUI()
         {
@@ -216,7 +221,7 @@ namespace MarTools
     
                 if(!playing)
                 {
-                    SetPose(script, pose);
+                    script.SetPose(newPose);
                     pose = newPose;
                 }
     
@@ -254,7 +259,6 @@ namespace MarTools
             {
                 var script = (TweenCore)target;
                 pose += Time.deltaTime / script.duration;
-                SetPose(script, pose);
     
                 if(pose >= 1)
                 {
@@ -265,21 +269,14 @@ namespace MarTools
             }
         }
     
-        private void SetPose(TweenCore script, float t)
-        {
-            if(script.ease == Utilities.Ease.Custom)
-            {
-                script.SetPose(script.curve.Evaluate(t));
-            }
-            else
-            {
-                script.SetPose(Utilities.Eases[script.ease].Invoke(t));
-            }
-        }
-    
         private void OnEnable()
         {
             EditorApplication.update += EditorUpdate;
+
+            script = (TweenCore)target;
+            script.SetPose(script.startingPosition);
+            pose = script.startingPosition;
+
         }
         private void OnDisable()
         {

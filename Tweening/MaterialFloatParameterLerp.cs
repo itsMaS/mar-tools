@@ -6,9 +6,9 @@ namespace MarTools
 
     public class MaterialFloatParameterLerp : MaterialParameterLerp<float>
     {
-        protected override void SetParameter(Material mat, string parameterID, float from, float to, float t)
+        protected override void SetParameter(ref MaterialPropertyBlock block, string parameterID, float from, float to, float t)
         {
-            mat.SetFloat(parameterID, Mathf.Lerp(from, to, t));
+            block.SetFloat(parameterID, Mathf.Lerp(from, to, t));
         }
     }
 }
