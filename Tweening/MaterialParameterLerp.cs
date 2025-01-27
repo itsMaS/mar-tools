@@ -22,10 +22,11 @@ namespace MarTools
             {
                 rend = GetComponent<Renderer>();
             }
-    
-            if(block == null ) 
+
+            if (block == null)
             {
                 block = new MaterialPropertyBlock();
+                if (rend.HasPropertyBlock()) rend.GetPropertyBlock(block);
             }
 
             SetParameter(ref block, parameterID, from, to, t);

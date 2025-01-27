@@ -195,6 +195,11 @@ namespace MarTools
                 item.UpdateShape();
             }
 
+            foreach (var item in GetComponentsInChildren<LineRendererLineBehavior>())
+            {
+                item.UpdateLine();
+            }
+
             foreach (var item in FindObjectsOfType<LineBehaviorSpawner>().Where(x => x.InsideOf.Contains(this) || x.OutsideOf.Contains(this)))
             {
                 item.UpdateShape();

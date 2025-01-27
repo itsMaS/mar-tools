@@ -14,7 +14,9 @@ namespace MarTools
     
         private LineRenderer lr;
         private LineBehavior lb;
-    
+
+        MaterialPropertyBlock block;
+
         private void Awake()
         {
             Initialize();
@@ -28,21 +30,36 @@ namespace MarTools
     
         private void Update()
         {
+            UpdateLine();
+        }
+
+        public void UpdateLine()
+        {
             if (!lb || !lr) Initialize();
-    
+
             Vector3 rot = lr.transform.rotation.eulerAngles;
             rot.x = 90;
-    
+
             lr.transform.rotation = Quaternion.Euler(rot);
             lr.useWorldSpace = false;
             lr.alignment = LineAlignment.TransformZ;
-    
-            lr.textureScale = new Vector2(verticalTilling * lb.CalculateLength(), lr.textureScale.y);
-    
+
+            float length = lb.CalculateLength();
+            lr.textureScale = new Vector2(verticalTilling * length, lr.textureScale.y);
+
             var positions = lb.smoothWorldPoints.ConvertAll(item => transform.InverseTransformPoint(item));
-    
+
             lr.positionCount = positions.Count;
             lr.SetPositions(positions.ToArray());
+
+
+            if (block == null)
+            {
+                block = new MaterialPropertyBlock();
+                if (lr.HasPropertyBlock()) lr.GetPropertyBlock(block);
+            }
+            block.SetFloat("_LineLength", length);
+            lr.SetPropertyBlock(block);
         }
     }
     
