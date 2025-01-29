@@ -1,4 +1,4 @@
-using Unity.Cinemachine;
+using Cinemachine;
 using UnityEngine;
 
 namespace MarTools
@@ -62,7 +62,7 @@ namespace MarTools
         {
             if (impulseSource != null)
             {
-                impulseSource.ImpulseDefinition.AmplitudeGain = rumbleIntensity;
+                impulseSource.m_ImpulseDefinition.m_AmplitudeGain = rumbleIntensity;
                 impulseSource.GenerateImpulse();
             }
         }
