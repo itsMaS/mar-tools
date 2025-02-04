@@ -8,7 +8,7 @@ namespace MarTools
     {
         protected override void SetParameter(ref MaterialPropertyBlock block, string parameterID, float from, float to, float t)
         {
-            block.SetFloat(parameterID, Mathf.Lerp(from, to, t));
+            block.SetFloat(parameterID, Mathf.LerpUnclamped(from, to, t));
         }
     }
 }
