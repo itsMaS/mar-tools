@@ -31,7 +31,9 @@ namespace MarTools
         public IGameObjectConditional checkFunction;
 
         public UnityEvent<GameObject> OnEntered;
+        public UnityEvent<GameObject> OnEnteredFirst;
         public UnityEvent<GameObject> OnExited;
+        public UnityEvent<GameObject> OnExitedAll;
 
         public UnityEvent OnComplete;
         public UnityEvent OnIncomplete;
@@ -64,6 +66,11 @@ namespace MarTools
             }
 
             OnEntered.Invoke(other.gameObject);
+
+            if(EnteredGameobjects.Count == 1)
+            {
+                OnEnteredFirst.Invoke(other.gameObject);
+            }
         }
 
         private void Complete()
@@ -97,6 +104,11 @@ namespace MarTools
             }
 
             OnExited.Invoke(other.gameObject);
+
+            if(EnteredGameobjects.Count == 0)
+            {
+                OnExitedAll.Invoke(other.gameObject);
+            }
         }
 
         private bool CheckObject(Collider col)
