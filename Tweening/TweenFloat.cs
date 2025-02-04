@@ -7,9 +7,12 @@ namespace MarTools
     {
         public UnityEvent<float> OnTweenFloat;
 
+        public float from = 0;
+        public float to = 1;
+
         public override void SetPose(float t)
         {
-            OnTweenFloat.Invoke(t);
+            OnTweenFloat.Invoke(Mathf.LerpUnclamped(from, to, t));
         }
     }
 }
