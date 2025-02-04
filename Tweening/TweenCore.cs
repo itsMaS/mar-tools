@@ -14,6 +14,8 @@ namespace MarTools
     public abstract class TweenCore : MonoBehaviour, IGameMechanic
     {
         public UnityEvent OnComplete;
+        public UnityEvent OnPlay;
+        public UnityEvent OnPlayed;
         public UnityEvent OnPlayForwards;
         public UnityEvent OnPlayedForwards;
         public UnityEvent OnPlayBackwards;
@@ -93,12 +95,14 @@ namespace MarTools
             if (relative) from = lastInterpolator;
 
             OnPlayForwards.Invoke();
+            OnPlay.Invoke();
 
             forward = true;
             ResetCoroutine();
             coroutine = this.DelayedAction(duration, () =>
             {
                 OnPlayedForwards.Invoke();
+                OnPlayed.Invoke();
                 Complete();
                 if (yoyo)
                 {
@@ -123,12 +127,14 @@ namespace MarTools
             if (relative) from = lastInterpolator;
 
             OnPlayBackwards.Invoke();
+            OnPlay.Invoke();
 
             forward = false;
             ResetCoroutine();
             coroutine = this.DelayedAction(duration, () =>
             {
                 OnPlayedBackwards.Invoke();
+                OnPlayed.Invoke();
                 if (looping && yoyo)
                 {
                     PlayForwards();
