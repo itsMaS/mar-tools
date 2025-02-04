@@ -309,7 +309,7 @@ namespace MarTools
         private Vector3 cursorWorldPosition;
     
         private float gridSize => EditorPrefs.GetFloat("GridSize", 5);
-        private bool snap => EditorPrefs.GetBool("Snapping", false);
+        private bool snap => EditorPrefs.GetBool("LineBehavior_Snap", false);
         private bool flat => EditorPrefs.GetBool("Flat", true);
 
         private float lastHeight => lineDrawer.points.Count == 0 ? lineDrawer.transform.position.y : lineDrawer.worldPoints.Last().y;
@@ -344,6 +344,11 @@ namespace MarTools
 
             bool newFlatSetting = EditorGUILayout.Toggle("Flat", flat);
             EditorPrefs.SetBool("Flat", newFlatSetting);
+
+            bool newSnapSettings = EditorGUILayout.Toggle("Snap", snap);
+            EditorPrefs.SetBool("LineBehavior_Snap", newSnapSettings);
+
+
 
             float newGridSize = EditorGUILayout.FloatField("Grid size", gridSize);
             EditorPrefs.SetFloat("GridSize",newGridSize);
@@ -385,6 +390,17 @@ namespace MarTools
             {
                 lineDrawer.ForceUpdateShape();
             }
+
+            if(GUILayout.Button("Add point +"))
+            {
+                Vector3 newPoint = Vector3.zero;
+                if(lineDrawer.points.Count > 0)
+                {
+                    newPoint = lineDrawer.points.Last();
+                }
+
+                lineDrawer.points.Add(newPoint + Vector3.up);
+            }
         }
     
         private void OnSceneGUI()
@@ -402,14 +418,6 @@ namespace MarTools
                 EditorPrefs.SetBool("Flat", !flat);
             }
 
- 
-
-    
-            if (Event.current.control && Event.current.type == EventType.KeyDown)
-            {
-                EditorPrefs.SetBool("Snapping", !snap);
-            }
-    
             if(snap)
             {
                 DrawGrid();
@@ -568,6 +576,8 @@ namespace MarTools
                     {
                         lineDrawer.points.RemoveAt(removeIndex);
                         lineDrawer.UpdateShape();
+
+                        Event.current.Use();
                         EditorUtility.SetDirty(lineDrawer);
                     }
                 }
