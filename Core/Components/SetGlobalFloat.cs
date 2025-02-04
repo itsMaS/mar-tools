@@ -13,9 +13,6 @@ public class SetGlobalFloat : MonoBehaviour
 
     private void OnValidate()
     {
-        if(!Application.isPlaying)
-        {
-            SetValue(startingValue);
-        }
+        SetValue(startingValue);
     }
 }
