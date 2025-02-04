@@ -91,7 +91,12 @@ namespace MarTools
             if (!clamp) return result;
             return Mathf.Clamp(result, min, max);
         }
-        
+
+        public static float Remap(this float input, float o1, float o2)
+        {
+            return Remap(input, 0, 1, o1, o2);
+        }
+
         public static Vector2 FindClosest(this IEnumerable<Vector2> collection, Vector2 target, out float closestDistance)
         {
             return FindClosest<Vector2>(collection, target, item => item, out closestDistance);
