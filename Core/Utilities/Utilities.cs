@@ -1,5 +1,6 @@
 namespace MarTools
 {
+    using Mono.CSharp;
     using System;
     using System.Collections;
     using System.Collections.Generic;
@@ -541,6 +542,12 @@ namespace MarTools
 
             // Apply the rotation to the original vector
             return randomRotation * original;
+        }
+
+        public static bool TryGetComponentInParent<T>(this GameObject go, out T component) where T : Component
+        {
+            component = go.GetComponentInParent<T>();
+            return component;
         }
     }
 }
