@@ -315,6 +315,7 @@ namespace MarTools
         private float lastHeight => lineDrawer.points.Count == 0 ? lineDrawer.transform.position.y : lineDrawer.worldPoints.Last().y;
 
         private bool editing = false;
+        private bool pointsFoldout = false;
 
         private void OnEnable()
         {
@@ -400,6 +401,17 @@ namespace MarTools
                 }
 
                 lineDrawer.points.Add(newPoint + Vector3.up);
+            }
+
+
+            GUILayout.Label("Points");
+            pointsFoldout = EditorGUILayout.Foldout(pointsFoldout, "Points List", true);
+            if (pointsFoldout)
+            {
+                for (int i = 0; i < lineDrawer.points.Count; i++)
+                {
+                    lineDrawer.points[i] = EditorGUILayout.Vector3Field($"P{i}", lineDrawer.points[i]);
+                }
             }
         }
     
