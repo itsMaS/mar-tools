@@ -8,12 +8,33 @@ namespace MarTools
     using TMPro;
     using UnityEngine;
     using UnityEngine.Events;
+    using UnityEngine.EventSystems;
     using UnityEngine.UI;
 
-    public class Node : MonoBehaviour
+    public class Node : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
     {
+        public UnityEvent OnHovered;
+        public UnityEvent OnUnhovered;
+        public UnityEvent OnClick;
+
         private List<Node> Children = new List<Node>();
         private UnityAction cleanupAction = null;
+
+
+        private RectTransform _rectTransform;
+
+        public RectTransform rectTransform
+        {
+            get
+            {
+                if(!_rectTransform)
+                {
+                    _rectTransform = GetComponent<RectTransform>();
+                }
+                return _rectTransform;
+            }
+        }
+
 
         /// <summary>
         /// Populates the parent container using this node as an example
@@ -90,6 +111,21 @@ namespace MarTools
             var node = Instantiate(gameObject, transform.parent).GetComponent<Node>();
             node.gameObject.SetActive(true);
             return node;
+        }
+
+        public virtual void OnPointerEnter(PointerEventData eventData)
+        {
+            OnHovered.Invoke();
+        }
+
+        public virtual void OnPointerClick(PointerEventData eventData)
+        {
+            OnClick.Invoke();
+        }
+
+        public virtual void OnPointerExit(PointerEventData eventData)
+        {
+            OnUnhovered.Invoke();
         }
 
         public Image image;
