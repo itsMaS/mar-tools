@@ -26,6 +26,7 @@ namespace MarTools
         public bool looping = false;
         [SerializeField]
         public List<Vector3> points = new List<Vector3>();
+
         public List<Vector3> worldPoints { get { return points.ConvertAll(p => transform.TransformPoint(p)); } }
         public List<Vector3> smoothWorldPoints { get { return GenerateSmoothPath(worldPoints, smoothing); } }
         public List<Vector3> GetPointsInsideShape(int pointCount, int seed)
@@ -331,7 +332,7 @@ namespace MarTools
         public override void OnInspectorGUI()
         {
             lineDrawer.lineColor = EditorGUILayout.ColorField("Color", lineDrawer.lineColor);
-            lineDrawer.smoothing = EditorGUILayout.IntSlider("Smoothing", lineDrawer.smoothing, 0, 30);
+            lineDrawer.smoothing = EditorGUILayout.IntSlider("Smoothing", lineDrawer.smoothing, 0, 100);
             lineDrawer.looping = EditorGUILayout.Toggle("Looping", lineDrawer.looping);
             lineDrawer.autoUpdate = EditorGUILayout.Toggle("Auto Update", lineDrawer.autoUpdate);
             lineDrawer.smoothingLength = EditorGUILayout.FloatField("Smoothing length", lineDrawer.smoothingLength);
@@ -624,7 +625,7 @@ namespace MarTools
                         newPoint = Handles.PositionHandle(oldPoint, Quaternion.identity);
                     }
                     Vector3 newPointLocal = lineDrawer.transform.InverseTransformPoint(newPoint);
-    
+
                     if (EditorGUI.EndChangeCheck())
                     {
 
