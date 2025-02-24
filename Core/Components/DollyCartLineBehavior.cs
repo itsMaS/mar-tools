@@ -1,107 +1,153 @@
 using UnityEngine;
+using System.Net;
+using Unity.Cinemachine;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace MarTools
 {
     [ExecuteAlways]
     public class DollyCartLineBehavior : MonoBehaviour
     {
-        public Vector3 offset = Vector3.zero;
-        public float damping = 10f;
+        public Vector3 positionOffset;
+        public Vector3 rotationOffset;
 
-        [SerializeField] LineBehavior lineBehavior;
-        [SerializeField] Transform trackedTarget;
+        public Vector3 samplingOffset;
+        public Vector3 offsetMultiplier;
 
-        private Vector3 velocity;
+        public float positionDamping;
+        public float rotationDamping;
 
-        private void Update()
+        public LineBehavior2 trackingLine;
+        public LineBehavior2 cameraLine;
+
+
+        public Transform target;
+
+        [HideInInspector] public bool preview = false;
+
+        Vector3 positionVelocity;
+        Quaternion rotationVelocity;
+
+
+        public void Update()
         {
-            if (!lineBehavior || !trackedTarget) return;
+            if (!target || !cameraLine || !trackingLine) return;
 
-            var worldPoints = lineBehavior.smoothWorldPoints;
-            if (worldPoints == null || worldPoints.Count < 2) return;
-
-            float minSqrDistance = float.MaxValue;
-            Vector3 bestPoint = worldPoints[0];
-
-            // Precompute the projected target position (on transform.right).
-            Vector3 targetProjected = Vector3.Project(trackedTarget.position, transform.right);
-
-            // Iterate over each segment [i..i+1]
-            for (int i = 0; i < worldPoints.Count - 1; i++)
+            if (!preview || Application.isPlaying)
             {
-                Vector3 start = worldPoints[i];
-                Vector3 end = worldPoints[i + 1];
+                var t = trackingLine.GetClosestPoint(target.position + samplingOffset, out float progress);
 
-                // Project segment endpoints onto transform.right
-                Vector3 startProjected = Vector3.Project(start, transform.right);
-                Vector3 endProjected = Vector3.Project(end, transform.right);
+                Vector3 offset = Vector3.Scale(((target.position + samplingOffset) - t.position), offsetMultiplier);
 
-                // We'll find how far 'targetProjected' is between startProjected & endProjected
-                Vector3 segVec = endProjected - startProjected;
-                float segLenSqr = segVec.sqrMagnitude;
-
-                // If the segment is extremely small in this axis, skip
-                if (segLenSqr < Mathf.Epsilon)
-                    continue;
-
-                // Param t along the segment in "projected space"
-                // Dot(tarVec, segVec) / |segVec|^2
-                Vector3 tarVec = targetProjected - startProjected;
-                float t = Vector3.Dot(tarVec, segVec) / segLenSqr;
-                t = Mathf.Clamp01(t);
-
-                // Interpolate in 3D between the original points
-                // at the same fraction t
-                Vector3 candidate = Vector3.Lerp(start, end, t);
-
-                // Now project this candidate in "transform.right" so we can
-                // compare it to targetProjected the same way you did originally.
-                Vector3 candidateProjected = Vector3.Project(candidate, transform.right);
-
-                // Compare distances in the projected space (sqrMagnitude in the axis direction)
-                Vector3 diff = candidateProjected - targetProjected;
-                float distSqr = diff.sqrMagnitude;
-
-                if (distSqr < minSqrDistance)
-                {
-                    minSqrDistance = distSqr;
-                    bestPoint = candidate;
-                }
+                SetPosition(progress, offset);
             }
+        }
 
-            // Add any user offset
-            Vector3 targetPos = bestPoint + offset;
+        public void SetPosition(float progress, Vector3 offset)
+        {
+            var p = cameraLine.GetPoint(progress);
+
+            Vector3 targetPosition = p.position + positionOffset + offset;
+            Quaternion targetRotation = p.rotation * Quaternion.Euler(rotationOffset);
 
             if (Application.isPlaying)
             {
-                // Smoothly move towards target
-                transform.position = Vector3.SmoothDamp(
-                    transform.position,
-                    targetPos,
-                    ref velocity,
-                    damping,
-                    Mathf.Infinity,
-                    Time.deltaTime
-                );
+                transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref positionVelocity, positionDamping);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 1/(rotationDamping+0.01f));
             }
             else
             {
-                // Set directly in edit mode
-                transform.position = targetPos;
+                transform.position = targetPosition;
+                transform.rotation = targetRotation;
             }
+
+
+            Debug.DrawLine(target.position + samplingOffset, p.position, Color.cyan);
+            Debug.DrawLine(p.position, p.position, Color.yellow);
         }
 
         private void OnDrawGizmos()
         {
-            if (lineBehavior == null) return;
-
-            var worldPoints = lineBehavior.smoothWorldPoints;
-            if (worldPoints == null) return;
-
-            foreach (var item in worldPoints)
+            if (cameraLine && target)
             {
-                Gizmos.DrawSphere(item, 0.1f);
+                Gizmos.color = Color.red;
+                Gizmos.DrawSphere(target.position + samplingOffset, 0.1f);
+
+                //GizmosUtilities.DrawRotation(transform.position, transform.rotation, 3);
+
+                int res = Mathf.RoundToInt(cameraLine.totalDistance / 10);
+                for (int i = 0; i < res; i++)
+                {
+                    float t = (float)i / res;
+
+                    Debug.DrawLine(cameraLine.GetPoint(t).position, trackingLine.GetPoint(t).position, Color.yellow*0.5f);
+                }
             }
         }
     }
+
+#if UNITY_EDITOR
+
+    [CustomEditor(typeof(DollyCartLineBehavior))]
+    public class DollyCartLineBehaviorEditor : UnityEditor.Editor
+    {
+        DollyCartLineBehavior dollyCart;
+
+        float previewValue = 0;
+
+        private void OnEnable()
+        {
+            dollyCart = (DollyCartLineBehavior)target;
+        }
+
+        private void OnDisable()
+        {
+            dollyCart.preview = false;
+        }
+
+        public override void OnInspectorGUI()
+        {
+            base.OnInspectorGUI();
+
+            if(GUILayout.Button(dollyCart.preview ? "Stop previewing" : "Star preview"))
+            {
+                dollyCart.preview = !dollyCart.preview;
+
+                if(dollyCart.preview)
+                {
+                    if(dollyCart.TryGetComponent<CinemachineCamera>(out var cam))
+                    {
+                        cam.Prioritize();
+                    }
+                }
+
+                if (!dollyCart.preview) dollyCart.Update();
+            }
+
+
+            if(dollyCart.preview)
+            {
+                float newValue = EditorGUILayout.Slider(previewValue, 0, 1);
+                if(newValue != previewValue)
+                {
+                    previewValue = newValue;
+                }
+                dollyCart.SetPosition(newValue, Vector3.zero);
+            }
+        }
+
+        private void OnSceneGUI()
+        {
+            if (!dollyCart.target || !dollyCart.cameraLine || !dollyCart.trackingLine) return;
+
+            var p = dollyCart.trackingLine.GetClosestPoint(dollyCart.target.position, out float progress);
+            Handles.Label(p.position + Vector3.up*0.25f, progress.ToString());
+
+            dollyCart.target.position = Handles.PositionHandle(dollyCart.target.position, Quaternion.identity);
+        }
+    }
+#endif
 }
