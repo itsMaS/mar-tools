@@ -10,6 +10,29 @@ namespace MarTools
 
     public static class Utilities
     {
+        /// <summary>
+        /// Returns the closest point on a line segment defined by two endpoints.
+        /// </summary>
+        /// <param name="point">The point to project onto the segment.</param>
+        /// <param name="segmentStart">The start point of the segment.</param>
+        /// <param name="segmentEnd">The end point of the segment.</param>
+        /// <returns>The closest point on the segment to the given point.</returns>
+        public static Vector3 ClosestPointOnLineSegment(Vector3 point, Vector3 segmentStart, Vector3 segmentEnd)
+        {
+            Vector3 segmentVector = segmentEnd - segmentStart;
+            // Calculate the projection parameter t along the segment.
+            float t = Vector3.Dot(point - segmentStart, segmentVector) / segmentVector.sqrMagnitude;
+            // Clamp t to the [0, 1] range so that the point lies on the segment.
+            t = Mathf.Clamp01(t);
+            return segmentStart + segmentVector * t;
+        }
+
+        public static Color SetAlpha(this Color color, float alpha)
+        {
+            color.a = alpha;
+            return color;
+        }
+
         public static Coroutine DelayedAction(this MonoBehaviour behavior, float time, Action onComplete, Action<float> onUpdate = null, bool timeScaled = true, Ease ease = Ease.InOutQuad, AnimationCurve curve = null)
         {
             if (behavior.enabled && behavior.gameObject.activeInHierarchy)
@@ -421,14 +444,16 @@ namespace MarTools
             return (positions);
         }
 
-        public static Transform FindRecursive(this Transform parent, string childName)
+        public static Transform FindRecursive(this Transform parent, string childName, bool includeDisabled = false)
         {
             if (parent.name == childName)
                 return parent;
 
             foreach (Transform child in parent)
             {
-                Transform result = child.FindRecursive(childName);
+                if (!includeDisabled && !child.gameObject.activeInHierarchy) continue;
+
+                Transform result = child.FindRecursive(childName, includeDisabled);
                 if (result != null)
                     return result;
             }
@@ -548,6 +573,87 @@ namespace MarTools
         {
             component = go.GetComponentInParent<T>();
             return component;
+        }
+
+        public static List<Vector3> GenerateSmoothPath(this List<Vector3> cpoints, float smoothingLength = 1, int smoothness = 5, bool looping = false)
+        {
+            if (cpoints.Count == 0) return cpoints;
+
+            var controlPoints = new List<Vector3>(cpoints);
+
+            if (smoothness <= 0)
+            {
+                if (looping)
+                    controlPoints.Add(cpoints[0]);
+                return controlPoints;
+            }
+
+            List<Vector3> smoothPoints = new List<Vector3>();
+            if (controlPoints.Count < 2)
+                return smoothPoints; // Not enough points to create a smooth path.
+
+            (Vector3, Vector3)[] Tangents = new (Vector3, Vector3)[controlPoints.Count];
+            for (int i = 0; i < controlPoints.Count; i++)
+            {
+                int next = (i + 1) % controlPoints.Count;
+                int previous = (i - 1 + controlPoints.Count) % controlPoints.Count;
+
+
+                Vector3 t1 = (controlPoints[next] - controlPoints[i]);
+                Vector3 t2 = (controlPoints[previous] - controlPoints[i]);
+
+
+                // HACK WITH THE ANGLE TO FLIP TANGENTS
+                float angle = Vector3.SignedAngle(t1, t2, Vector3.up);
+                Vector3 n = (Vector3.Cross(Vector3.Slerp(t1, t2, 0.5f), angle >= -180 && angle < 0 ? Vector3.up : Vector3.down).normalized * smoothingLength);
+
+                if (!looping)
+                {
+                    if (i == 0 || i == controlPoints.Count - 1) n = Vector3.zero;
+                }
+                Tangents[i] = (controlPoints[i] + n, controlPoints[i] - n);
+            }
+
+
+            for (int i = 0; i < controlPoints.Count; i++)
+            {
+                int ind1 = i;
+                int ind2 = (i + 1) % controlPoints.Count;
+
+                Vector3 p1 = controlPoints[ind1];
+                Vector3 p2 = controlPoints[ind2];
+
+                var tan1 = Tangents[ind1];
+                var tan2 = Tangents[ind2];
+
+                if (!looping && i == controlPoints.Count - 1) continue;
+
+                for (int j = 0; j < smoothness; j++)
+                {
+                    float t = (float)j / (smoothness - 1);
+
+                    smoothPoints.Add(BezierCurve(t, p1, tan1.Item2, tan2.Item1, p2));
+                }
+            }
+
+            return smoothPoints;
+        }
+
+        public static Vector3 BezierCurve(float t, Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3)
+        {
+            float u = 1 - t;
+            float tt = t * t;
+            float uu = u * u;
+            float uuu = uu * u;
+            float ttt = tt * t;
+
+            // p0, p1, p2, and p3 are control points for the Bezier curve
+            Vector3 p = uuu * p0; // Start point influenced by p0
+            p += 3 * uu * t * p1; // Control point, pulling towards p1
+            p += 3 * u * tt * p2; // Control point, pulling towards p2
+            p += ttt * p3; // End point influenced by p3
+
+            return p;
         }
     }
 }
