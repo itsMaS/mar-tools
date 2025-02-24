@@ -2,78 +2,81 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Experimental.GlobalIllumination;
 
 namespace MarTools
 {
+    [RequireComponent(typeof(Trigger))]
     public class GateBehavior : MonoBehaviour
     {
         public UnityEvent<GameObject> OnPassAB;
         public UnityEvent<GameObject> OnPassBA;
 
-        [SerializeField, HideInInspector] BoxCollider gateA;
-        [SerializeField, HideInInspector] BoxCollider gateB;
+        public Dictionary<GameObject, Direction> DirectionTracking = new Dictionary<GameObject, Direction>();
 
-        public enum State 
+        public enum Direction
         {
-            Outside,
-            EnteredThroughA,
-            EnteredThroughB,
+            A,
+            B,
         }
 
-        public Dictionary<GameObject, State> States = new Dictionary<GameObject, State>();
+        Trigger trigger;
 
-        public void Enter(Collider col, GameObject owner)
+        private void Awake()
         {
-            if(!States.TryGetValue(owner, out State state))
-            {
-                States.Add(owner, col == gateA ? State.EnteredThroughA : State.EnteredThroughB);
-            }
+            trigger = GetComponent<Trigger>();
+
+            trigger.OnEntered.AddListener(Entered);
+            trigger.OnExited.AddListener(Exited);
         }
 
-        public void Exit(Collider col, GameObject owner)
+        private void Exited(GameObject arg0)
         {
+            //Debug.Log($"{arg0.name} exited through {(GetDirection(arg0) == Direction.A ? "A" : "B")}");
 
-            if (States.TryGetValue(owner, out State state))
+            var exitDirection = GetDirection(arg0);
+            if(exitDirection != DirectionTracking[arg0])
             {
-                if(col == gateA)
+                switch (exitDirection)
                 {
-
-                    if (state == State.EnteredThroughB)
-                    {
-                        OnPassBA?.Invoke(owner);
-                        States.Remove(owner);
-                    }
-                }
-                else if (col == gateB) 
-                {
-
-                    if (state == State.EnteredThroughA)
-                    {
-                        OnPassAB?.Invoke(owner);
-                        States.Remove(owner);
-                    }
+                    case Direction.A:
+                        //Debug.Log($"{arg0.name} Pass B->A");
+                        OnPassBA.Invoke(arg0);
+                        break;
+                    case Direction.B:
+                        //Debug.Log($"{arg0.name} Pass A->B");
+                        OnPassAB.Invoke(arg0);
+                        break;
+                    default:
+                        break;
                 }
             }
+
+            DirectionTracking.Remove(arg0);
         }
 
-        private void Reset()
+        private void Entered(GameObject arg0)
         {
-            gateA = gameObject.AddComponent<BoxCollider>();
-            gateA.isTrigger = true;
-
-            gateA.center = new Vector3(0, 0, 2);
-
-            gateB = gameObject.AddComponent<BoxCollider>();
-            gateB.isTrigger = true;
-
-            gateB.center = new Vector3(0, 0, -2);
+            //Debug.Log($"{arg0.name} entered through {(GetDirection(arg0) == Direction.A ? "A" : "B")}");
+            DirectionTracking[arg0] = GetDirection(arg0);
         }
+
+        public Direction GetDirection(GameObject go)
+        {
+            Vector3 dist = go.transform.position - transform.position;
+            float dot = Vector3.Dot(dist.normalized, transform.forward);
+            return dot < 0 ? Direction.A : Direction.B;
+        }
+
 
         private void OnDrawGizmos()
         {
+            Gizmos.color = Color.yellow;
+            GizmosUtilities.DrawArrow(transform.position - transform.forward/2, transform.position + transform.forward/2);
+
 #if UNITY_EDITOR
-            UnityEditor.Handles.Label(transform.TransformPoint(gateA.center), "Gate A");
-            UnityEditor.Handles.Label(transform.TransformPoint(gateB.center), "Gate B");
+            UnityEditor.Handles.Label(transform.position - transform.forward*0.6f, "A");
+            UnityEditor.Handles.Label(transform.position + transform.forward*0.6f, "B");
 #endif
         }
     }
