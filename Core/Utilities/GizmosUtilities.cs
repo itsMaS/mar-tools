@@ -36,11 +36,32 @@ namespace MarTools
                 Gizmos.DrawLine(controlPoints[0], controlPoints[controlPoints.Count - 1]);
             }
         }
+
+        internal static void DrawRotation(Vector3 position, Quaternion rotation, float scale = 1)
+        {
+            // Calculate directions from the rotation
+            Vector3 forward = rotation * Vector3.forward;
+            Vector3 right = rotation * Vector3.right;
+            Vector3 up = rotation * Vector3.up;
+
+            // Draw the forward vector in blue
+            Gizmos.color = Color.blue;
+            Gizmos.DrawLine(position, position + forward * scale);
+
+            // Draw the right vector in red
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(position, position + right * scale);
+
+            // Draw the up vector in green
+            Gizmos.color = Color.green;
+            Gizmos.DrawLine(position, position + up * scale);
+        }
+
     }
 
     public static class DebugUtitlities
     {
-        public static void DrawCircle(Vector3 center, Vector3 normal, float radius, int resolution = 10)
+        public static void DrawCircle(Vector3 center, Vector3 normal, float radius, float duration = 0, int resolution = 10)
         {
             // Ensure the normal is normalized
             normal.Normalize();
@@ -64,7 +85,7 @@ namespace MarTools
             {
                 float angle = i * angleStep;
                 Vector3 nextPoint = center + (right * Mathf.Cos(angle * Mathf.Deg2Rad) + forward * Mathf.Sin(angle * Mathf.Deg2Rad)) * radius;
-                Debug.DrawLine(prevPoint, nextPoint, Color.red, 0, false);
+                Debug.DrawLine(prevPoint, nextPoint, Color.red, duration, false);
                 prevPoint = nextPoint;
             }
         }
