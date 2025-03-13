@@ -1,3 +1,4 @@
+#if UNITY_CINEMACHINE
 using Unity.Cinemachine;
 using UnityEngine;
 
@@ -68,3 +69,4 @@ namespace MarTools
         }
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if UNITY_CINEMACHINE
 using UnityEngine;
 using System.Net;
 using Unity.Cinemachine;
@@ -151,3 +152,4 @@ namespace MarTools
     }
 #endif
 }
+#endif
