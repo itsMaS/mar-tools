@@ -10,6 +10,57 @@ namespace MarTools
 
 #if UNITY_EDITOR
 
+    public class EditorPrefToggle
+    {
+        public string name;
+        public bool defaultValue;
+
+        public bool value
+        {
+            get
+            {
+                return EditorPrefs.GetBool(name, defaultValue);
+            }
+            set
+            {
+                EditorPrefs.SetBool(name, value);
+            }
+        }
+
+
+        public EditorPrefToggle(string name, bool defaultValue = false)
+        {
+            this.name = name;
+            this.defaultValue = defaultValue;
+        }
+
+        public void DrawToggle()
+        {
+            value = EditorGUILayout.Toggle(name, value);
+        }
+    }
+
+    public class MarToolsEditor<T> : Editor where T : UnityEngine.Object
+    {
+        protected T script;
+
+        protected virtual void OnEnable()
+        {
+            script = (T)target;
+            // Force the editor to update every frame
+            EditorApplication.update += UpdateInspector;
+        }
+
+        protected virtual void OnDisable()
+        {
+            EditorApplication.update -= UpdateInspector;
+        }
+
+        private void UpdateInspector()
+        {
+            Repaint();
+        }
+    }
     public static class EditorUtilities
     {
         // Example function to find all assets of a specified type
@@ -79,6 +130,52 @@ namespace MarTools
             // Filter types that are classes and implement the interface
             return types.Where(t => t.IsClass && !t.IsAbstract && interfaceType.IsAssignableFrom(t)).ToList();
         }
+
+        public static GUIStyle GetButtonStyle(Color bgColor, Color textColor, float width, float height, int textSize = 10)
+        {
+            GUIStyle redButtonStyle = new GUIStyle(GUI.skin.button);
+            redButtonStyle.normal.textColor = Color.white;
+            redButtonStyle.fontSize = textSize; // Make text smaller
+            redButtonStyle.fixedHeight = 20; // Smaller height
+            redButtonStyle.fixedWidth = 20; // Smaller width
+            redButtonStyle.normal.background = MakeTex(2, 2, bgColor);
+            redButtonStyle.hover.background = MakeTex(2, 2, bgColor * 0.5f);
+
+            return redButtonStyle;
+        }
+        public static Texture2D MakeTex(int width, int height, Color col)
+        {
+            Color[] pix = new Color[width * height];
+            for (int i = 0; i < pix.Length; i++)
+            {
+                pix[i] = col;
+            }
+            Texture2D result = new Texture2D(width, height);
+            result.SetPixels(pix);
+            result.Apply();
+            return result;
+        }
+
+        public static void DrawProgressBar(float value, Color backgroundColor, Color fillColor, Color textColor, string label = "", float height = 20)
+        {
+            // Reserve space
+            Rect rectBG = GUILayoutUtility.GetRect(0, height, GUILayout.ExpandWidth(true));
+
+            // Draw background
+            EditorGUI.DrawRect(rectBG, Color.gray);
+
+            // Draw fill
+
+            Rect rectFill = new Rect(rectBG);
+            rectFill.width *= Mathf.Clamp01(value);
+            EditorGUI.DrawRect(rectFill, Color.green);
+
+            // Draw text
+            GUIStyle style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
+            style.normal.textColor = textColor;
+            EditorGUI.LabelField(rectBG, label + $" ({(value * 100):0}%)", style);
+        }
+
     }
 #endif
 }
