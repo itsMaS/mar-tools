@@ -5,6 +5,12 @@ namespace MarTools
 {
     public class Singleton<T> : MonoBehaviour where T : Singleton<T>
     {
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
+        private static void Cleanup()
+        {
+            _instance = null;
+        }
+
         public static T Instance
         {
             get
@@ -19,10 +25,23 @@ namespace MarTools
                 }
                 if(!_instance)
                 {
-                    Debug.LogError("Not a single instance of the singleton class exists in the scene");
+                    Debug.LogWarning("Not a single instance of the singleton class exists in the scene");
                 }
 
                 return _instance;
+            }
+        }
+
+        private void Awake()
+        {
+            if(_instance && _instance != this)
+            {
+                Destroy(gameObject);
+            }
+            else
+            {
+                _instance = this as T;
+                Initialize();
             }
         }
 
