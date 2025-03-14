@@ -154,7 +154,7 @@ namespace MarTools
                 PointData next = Points[i+1];
 
 
-                Vector3 closestPoint = Utilities.ClosestPointOnLineSegment(pos, prev.position, next.position);
+                Vector3 closestPoint = Utilities.ClosestPointOnLineSegment(pos, prev.position, next.position, out float _);
 
                 float sqrMagnitude = Vector3.SqrMagnitude(closestPoint - pos);
                 if (minDistance >= sqrMagnitude)
