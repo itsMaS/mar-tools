@@ -1,7 +1,9 @@
 {
     "name": "AIassist",
     "rootNamespace": "",
-    "references": [],
+    "references": [
+        "MarTools"
+    ],
     "includePlatforms": [
         "Editor"
     ],
