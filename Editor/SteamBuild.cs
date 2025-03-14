@@ -13,6 +13,10 @@ public class SteamBuildWindow : EditorWindow
     private static int appID;
     private static string buildDirectory;
     private static string steamCmdPath;
+    private static string steamAuthCode;
+
+    private static string buildPath => Path.Combine(buildDirectory, productName + ".exe");
+    private static string productName => PlayerSettings.productName;
 
     private static void Refresh()
     {
@@ -45,6 +49,31 @@ public class SteamBuildWindow : EditorWindow
 
     private void OnGUI()
     {
+
+        Color c;
+        Color A = ColorUtility.TryParseHtmlString("#171a21", out c) ? c : Color.white;
+        Color B = ColorUtility.TryParseHtmlString("#66c0f4", out c) ? c : Color.white;
+        Color C = ColorUtility.TryParseHtmlString("#1b2838", out c) ? c : Color.white;
+        Color D = ColorUtility.TryParseHtmlString("#2a475e", out c) ? c : Color.white;
+        Color E = ColorUtility.TryParseHtmlString("#c7d5e0", out c) ? c : Color.white;
+
+        DrawBackground(A);
+
+        GUI.contentColor = E;
+        GUI.backgroundColor = B;
+
+
+        GUIStyle labelStyle = new GUIStyle(GUI.skin.label);
+        labelStyle.fontSize = 40;
+        labelStyle.fontStyle = FontStyle.Bold;
+
+        GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
+        buttonStyle.fontSize = 20;
+        buttonStyle.fontStyle = FontStyle.Bold;
+
+        GUILayout.Label("Build to Steam Settings", labelStyle);
+                
+
         GUILayout.Label("Steam Credentials", EditorStyles.boldLabel);
         steamUsername = EditorGUILayout.TextField("Username", steamUsername);
         steamPassword = EditorGUILayout.PasswordField("Password", steamPassword);
@@ -57,11 +86,18 @@ public class SteamBuildWindow : EditorWindow
             UnityEngine.Debug.Log("Steam credentials saved.");
         }
 
-        GUILayout.Space(10);
+        EditorGUILayout.Space(10);
 
-        GUILayout.Label("Build Settings", EditorStyles.boldLabel);
+        EditorGUILayout.HelpBox("Make sure to authentificate your Steam account if it's using any 2FA, by clicking this button and following prompts on the console (this action needs to be done once on this computer)", MessageType.Info);
+        if (GUILayout.Button("Authentificate"))
+        {
+            Authenticate();
+        }
+        EditorGUILayout.Space(10);
+
+        GUILayout.BeginHorizontal();
         buildDirectory = EditorGUILayout.TextField("Build Directory", buildDirectory);
-        if (GUILayout.Button("Select Build Directory"))
+        if (GUILayout.Button("...", GUILayout.Width(20)))
         {
             string selectedPath = EditorUtility.OpenFolderPanel("Select Build Directory", buildDirectory, "");
             if (!string.IsNullOrEmpty(selectedPath))
@@ -71,12 +107,17 @@ public class SteamBuildWindow : EditorWindow
                 UnityEngine.Debug.Log("Build directory set to: " + buildDirectory);
             }
         }
+        GUILayout.EndHorizontal();
 
-        GUILayout.Space(10);
+        if(String.IsNullOrEmpty(steamCmdPath))
+        {
+            string link = @"https://developer.valvesoftware.com/wiki/SteamCMD";
+            EditorGUILayout.HelpBox($"No SteamCMD path, you can download it from: {link}", MessageType.Error);
+        }
 
-        GUILayout.Label("Steam SDK Settings", EditorStyles.boldLabel);
+        GUILayout.BeginHorizontal();
         steamCmdPath = EditorGUILayout.TextField("SteamCMD Path", steamCmdPath);
-        if (GUILayout.Button("Select SteamCMD Executable"))
+        if (GUILayout.Button("...", GUILayout.Width(20)))
         {
             string selectedPath = EditorUtility.OpenFilePanel("Select SteamCMD Executable",
                                                               Path.GetDirectoryName(steamCmdPath),
@@ -88,13 +129,29 @@ public class SteamBuildWindow : EditorWindow
                 UnityEngine.Debug.Log("SteamCMD path set to: " + steamCmdPath);
             }
         }
+        GUILayout.EndHorizontal();
 
         GUILayout.Space(20);
 
-        if (GUILayout.Button("Build & Upload"))
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("Build & Upload", buttonStyle))
         {
             BuildAndUpload();
         }
+        if (GUILayout.Button("Upload", buttonStyle))
+        {
+            UploadToSteam();
+        }
+        GUILayout.EndHorizontal();
+    }
+
+    private void DrawBackground(Color color)
+    {
+        // Get the full window rect
+        Rect windowRect = new Rect(0, 0, position.width, position.height);
+
+        // Set GUI color
+        EditorGUI.DrawRect(windowRect, color);
     }
 
     private static void BuildAndUploadInternal()
@@ -106,9 +163,7 @@ public class SteamBuildWindow : EditorWindow
                         .ToArray();
 
         // Use the product name from PlayerSettings for the build file name.
-        string productName = PlayerSettings.productName;
         // Build the executable path using the selected build directory.
-        string buildPath = Path.Combine(buildDirectory, productName + ".exe");
 
         BuildPlayerOptions buildOptions = new BuildPlayerOptions
         {
@@ -124,7 +179,7 @@ public class SteamBuildWindow : EditorWindow
         if (summary.result == BuildResult.Succeeded)
         {
             UnityEngine.Debug.Log("Build succeeded: " + summary.totalSize + " bytes");
-            UploadToSteam(buildPath);
+            UploadToSteam();
         }
         else if (summary.result == BuildResult.Failed)
         {
@@ -132,8 +187,10 @@ public class SteamBuildWindow : EditorWindow
         }
     }
 
-    private static void UploadToSteam(string buildPath)
+    private static void UploadToSteam()
     {
+        Refresh();
+
         if (!File.Exists(buildPath))
         {
             UnityEngine.Debug.LogError("Build file does not exist: " + buildPath);
@@ -141,9 +198,7 @@ public class SteamBuildWindow : EditorWindow
         }
 
         // Retrieve saved credentials.
-        string username = EditorPrefs.GetString("SteamUsername");
-        string password = EditorPrefs.GetString("SteamPassword");
-        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+        if (string.IsNullOrEmpty(steamUsername) || string.IsNullOrEmpty(steamPassword))
         {
             UnityEngine.Debug.LogError("Steam credentials are missing.");
             return;
@@ -159,8 +214,7 @@ public class SteamBuildWindow : EditorWindow
 
         // Use the selected SteamCMD path.
 
-        string logFilePath = Path.Combine(Path.GetDirectoryName(steamCmdPath), "steamcmd.log");
-        string arguments = $"-logfile \"{logFilePath}\" +login {username} {password} +run_app_build \"{tempVdfPath}\" +quit";
+        string arguments = $"+login {steamUsername} {steamPassword} +run_app_build \"{tempVdfPath}\" +quit";
 
         UnityEngine.Debug.Log("Executing: " + steamCmdPath + " " + arguments);
 
@@ -195,12 +249,14 @@ public class SteamBuildWindow : EditorWindow
                 else
                 {
                     UnityEngine.Debug.LogError("Upload failed with exit code: " + process.ExitCode);
+                    OpenWindow();
                 }
             }
         }
         catch (Exception ex)
         {
             UnityEngine.Debug.LogError("Exception while uploading: " + ex.Message);
+            OpenWindow();
         }
         finally
         {
@@ -269,4 +325,8 @@ public class SteamBuildWindow : EditorWindow
         }
     }
 
+    public static void Authenticate()
+    {
+        Process.Start(steamCmdPath, $"+login {steamUsername} {steamPassword}");
+    }
 }
