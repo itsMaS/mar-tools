@@ -10,19 +10,23 @@ namespace MarTools
 
     public static class GizmosUtilities
     {
-        public static void DrawArrow(Vector3 start, Vector3 end)
+        public static void DrawArrow(Vector3 start, Vector3 end, float size = 0.25f, float angle = 20)
         {
-            Vector3 direction = (end - start).normalized;
-            float arrowHeadLength = 0.25f;
-            float arrowHeadAngle = 20.0f;
+            Vector3 direction = (end - start);
+
+            if (direction.magnitude < 0.01f) return;
+
+
+            direction.Normalize();
+
 
             Gizmos.DrawLine(start, end);
 
-            Vector3 right = Quaternion.LookRotation(direction) * Quaternion.Euler(0, 180 + arrowHeadAngle, 0) * new Vector3(0, 0, 1);
-            Vector3 left = Quaternion.LookRotation(direction) * Quaternion.Euler(0, 180 - arrowHeadAngle, 0) * new Vector3(0, 0, 1);
+            Vector3 right = Quaternion.LookRotation(direction) * Quaternion.Euler(0, 180 + angle, 0) * new Vector3(0, 0, 1);
+            Vector3 left = Quaternion.LookRotation(direction) * Quaternion.Euler(0, 180 - angle, 0) * new Vector3(0, 0, 1);
 
-            Gizmos.DrawLine(end, end + right * arrowHeadLength);
-            Gizmos.DrawLine(end, end + left * arrowHeadLength);
+            Gizmos.DrawLine(end, end + right * size);
+            Gizmos.DrawLine(end, end + left * size);
         }
 
         internal static void DrawLine(List<Vector3> controlPoints, bool looping)
