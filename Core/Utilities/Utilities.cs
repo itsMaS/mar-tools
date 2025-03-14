@@ -16,15 +16,16 @@ namespace MarTools
         /// <param name="segmentStart">The start point of the segment.</param>
         /// <param name="segmentEnd">The end point of the segment.</param>
         /// <returns>The closest point on the segment to the given point.</returns>
-        public static Vector3 ClosestPointOnLineSegment(Vector3 point, Vector3 segmentStart, Vector3 segmentEnd)
+        public static Vector3 ClosestPointOnLineSegment(Vector3 point, Vector3 segmentStart, Vector3 segmentEnd, out float progress)
         {
             Vector3 segmentVector = segmentEnd - segmentStart;
             // Calculate the projection parameter t along the segment.
             float t = Vector3.Dot(point - segmentStart, segmentVector) / segmentVector.sqrMagnitude;
             // Clamp t to the [0, 1] range so that the point lies on the segment.
-            t = Mathf.Clamp01(t);
-            return segmentStart + segmentVector * t;
+            progress = Mathf.Clamp01(t);
+            return segmentStart + segmentVector * progress;
         }
+
 
         public static Color SetAlpha(this Color color, float alpha)
         {
@@ -655,29 +656,24 @@ namespace MarTools
             return p;
         }
 
-        public static Texture2D GenerateGradientTexture(Gradient gradient, int width = 256, int height = 1)
+        public static List<Transform> GetTransformChain(Transform ancestor, Transform descendant)
         {
-            if (gradient == null)
+            if (!descendant.IsChildOf(ancestor))
+                return null; // No valid hierarchy connection
+
+            List<Transform> chain = new List<Transform>();
+
+            Transform current = descendant;
+            while (current != null)
             {
-                Debug.LogError("Gradient is null!");
-                return null;
+                chain.Add(current);
+                if (current == ancestor)
+                    break;
+                current = current.parent;
             }
 
-            Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
-            texture.wrapMode = TextureWrapMode.Clamp;
-            texture.filterMode = FilterMode.Bilinear;
-
-            for (int x = 0; x < width; x++)
-            {
-                Color color = gradient.Evaluate((float)x / (width - 1));
-                for (int y = 0; y < height; y++)
-                {
-                    texture.SetPixel(x, y, color);
-                }
-            }
-
-            texture.Apply();
-            return texture;
+            chain.Reverse(); // Reverse to get top-down order
+            return chain;
         }
     }
 }
