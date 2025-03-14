@@ -88,6 +88,12 @@ namespace MarTools
                 }
             }
         }
+
+        public void SetLine(LineBehavior2 lineBehavior)
+        {
+            trackingLine = lineBehavior;
+            cameraLine = lineBehavior;
+        }
     }
 
 #if UNITY_EDITOR
