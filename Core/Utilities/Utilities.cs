@@ -675,5 +675,30 @@ namespace MarTools
             chain.Reverse(); // Reverse to get top-down order
             return chain;
         }
+
+        public static Texture2D GenerateGradientTexture(Gradient gradient, int width = 256, int height = 1)
+        {
+            if (gradient == null)
+            {
+                Debug.LogError("Gradient is null!");
+                return null;
+            }
+
+            Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.filterMode = FilterMode.Bilinear;
+
+            for (int x = 0; x < width; x++)
+            {
+                Color color = gradient.Evaluate((float)x / (width - 1));
+                for (int y = 0; y < height; y++)
+                {
+                    texture.SetPixel(x, y, color);
+                }
+            }
+
+            texture.Apply();
+            return texture;
+        }
     }
 }
