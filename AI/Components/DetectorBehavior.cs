@@ -34,8 +34,13 @@ namespace MarTools.AI
 
                 foreach (var item in Physics.OverlapCapsule(origin.position - Vector3.up * 5, origin.position + Vector3.up * 5, viewRadius))
                 {
-                    // Collider must have a detectable component to be detected
-                    if (!item.TryGetComponent<IDetectable>(out var detectable)) continue;
+                    IDetectable detectable = null;
+                    if((item.attachedRigidbody && item.attachedRigidbody.TryGetComponent<IDetectable>(out detectable)) || item.TryGetComponent<IDetectable>(out detectable))
+                    {
+
+                    }
+
+                    if (detectable == null) continue;
 
                     Vector3 toTarget = detectable.transform.position - origin.position;
                     Vector3 viewProjection = Vector3.ProjectOnPlane(origin.forward, Vector3.up);
@@ -92,6 +97,8 @@ namespace MarTools.AI
             {
                 base.OnInspectorGUI();
 
+                EditorGUI.BeginChangeCheck();
+
                 GUILayout.Label("Transform used for calculations");
                 GUILayout.BeginHorizontal();
 
@@ -106,6 +113,11 @@ namespace MarTools.AI
                 }
 
                 GUILayout.EndHorizontal();
+
+                if(EditorGUI.EndChangeCheck())
+                {
+                    EditorUtility.SetDirty(behavior);
+                }
             }
 
             private void OnSceneGUI()
