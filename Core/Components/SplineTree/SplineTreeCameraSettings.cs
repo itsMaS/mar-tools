@@ -48,6 +48,7 @@ namespace MarTools
 
         public Vector3 globalPositionOffset;
         public Vector3 globalRotationOffset;
+        public bool allowSplitscreen;
 
         private void Update()
         {
@@ -153,6 +154,11 @@ namespace MarTools
                 {
                     OnSceneGUI();
                 }
+            }
+
+            if(GUILayout.Button("Reset overrides"))
+            {
+                script.NodeSettings.Clear();
             }
 
 
