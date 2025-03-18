@@ -105,7 +105,7 @@ namespace MarTools
             return Mathf.Abs(destination - input);
         }
 
-        public static float Remap(this float input, float i1, float i2, float o1 = 1, float o2 = 1, bool clamp = true)
+        public static float Remap(this float input, float i1, float i2, float o1 = 0, float o2 = 1, bool clamp = true)
         {
             float min = Mathf.Min(o1, o2);
             float max = Mathf.Max(o1, o2);
@@ -116,9 +116,9 @@ namespace MarTools
             return Mathf.Clamp(result, min, max);
         }
 
-        public static float Remap(this float input, float o1, float o2)
+        public static float Remap01(this float input, float o1, float o2, bool clamped = true)
         {
-            return Remap(input, 0, 1, o1, o2);
+            return Remap(input, 0, 1, o1, o2, clamped);
         }
 
         public static Vector2 FindClosest(this IEnumerable<Vector2> collection, Vector2 target, out float closestDistance)
@@ -152,6 +152,22 @@ namespace MarTools
             {Ease.OutQuad, t1 => OutQuad(t1) },
             {Ease.InQuad, t1 => InQuad(t1) },
         };
+
+        public static float EaseGravity(float t, float start, float peak, float end)
+        {
+            // Quadratic gravity-based trajectory easing
+            float midpoint = 0.5f; // The peak happens at 50% progress
+            if (t < midpoint)
+            {
+                // First half: projectile moves up
+                return Mathf.Lerp(start, peak, t / midpoint);
+            }
+            else
+            {
+                // Second half: projectile moves down
+                return Mathf.Lerp(peak, end, (t - midpoint) / (1f - midpoint));
+            }
+        }
 
         private static float InQuad(float t)
         {
