@@ -1,5 +1,6 @@
 namespace MarTools.AI
 {
+    using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
@@ -20,17 +21,17 @@ namespace MarTools.AI
             [HideInInspector] public bool overrideOrigin = false;
             [HideInInspector] public Transform originOverride = null;
 
-            public UnityEvent<GameObject> OnDetectStart;
-            public UnityEvent<GameObject> OnDetectEnd;
+            public UnityEvent<IDetectable> OnDetectStart;
+            public UnityEvent<IDetectable> OnDetectEnd;
 
             public float viewRadius = 10;
             public float viewAngle = 45f;
             public LayerMask obstructionMask;
 
-            public List<GameObject> ObjectsInView = new List<GameObject>();
+            public List<IDetectable> ObjectsInView = new List<IDetectable>();
             private void FixedUpdate()
             {
-                List<GameObject> NewObjectsInView = new List<GameObject>();
+                List<IDetectable> NewObjectsInView = new List<IDetectable>();
 
                 foreach (var item in Physics.OverlapCapsule(origin.position - Vector3.up * 5, origin.position + Vector3.up * 5, viewRadius))
                 {
@@ -64,12 +65,12 @@ namespace MarTools.AI
 
                     // Object is in view
 
-                    NewObjectsInView.Add(detectable.transform.gameObject);
+                    NewObjectsInView.Add(detectable);
                 
-                    if(!ObjectsInView.Contains(detectable.transform.gameObject))
+                    if(!ObjectsInView.Contains(detectable))
                     {
-                        ObjectsInView.Add(detectable.transform.gameObject);
-                        OnDetectStart.Invoke(detectable.transform.gameObject);
+                        ObjectsInView.Add(detectable);
+                        OnDetectStart.Invoke(detectable);
                     }
                     Debug.DrawLine(origin.position, detectable.transform.position, Color.red, Time.fixedDeltaTime);
                 }
@@ -79,6 +80,19 @@ namespace MarTools.AI
                     ObjectsInView.Remove(detectable);
                     OnDetectEnd.Invoke(detectable);
                 }
+            }
+
+            public bool TryGetClosestInView<T>(out T found) where T : MonoBehaviour, IDetectable
+            {
+                found = null;
+
+                if (ObjectsInView.Count == 0) return false;
+                var casted = ObjectsInView.Where(x => x is T);
+
+                if (casted.Count() == 0) return false;
+
+                found = casted.FindClosest(transform.position, x => x.transform.position, out float _) as T;
+                return true;
             }
         }
 
