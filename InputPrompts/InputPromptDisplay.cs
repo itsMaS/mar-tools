@@ -46,6 +46,8 @@ namespace MarTools
 
             if (scheme != null)
             {
+                if (!target) target = GetComponent<Image>();
+
                 Sprite sprite = mapping.GetPromptSprite(displayedAction, playerInput.currentControlScheme);
                 target.sprite = sprite;
             }
