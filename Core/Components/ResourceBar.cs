@@ -75,16 +75,25 @@ namespace MarTools
             OnUpdated.Invoke();
         }
 
-        private Coroutine SetTarget(Image image, float target)
+        private void SetTarget(Image image, float target)
         {
             float startValue = image.fillAmount.Remap(mapping, new Vector2(0,1));
-            return this.DelayedAction(0.5f, () =>
-            {
+            float delta = Mathf.Abs(target - startValue);
 
-            }, t =>
+            if (delta > 0.1f)
             {
-                image.fillAmount = Mathf.Lerp(startValue, target, t).Remap(new Vector2(0,1), mapping);
-            }, false, Utilities.Ease.OutQuad);
+                this.DelayedAction(0.5f, () =>
+                {
+
+                }, t =>
+                {
+                    image.fillAmount = Mathf.Lerp(startValue, target, t).Remap(new Vector2(0, 1), mapping);
+                }, false, Utilities.Ease.OutQuad);
+            }
+            else
+            {
+                image.fillAmount = target;
+            }
         }
     }
 }
