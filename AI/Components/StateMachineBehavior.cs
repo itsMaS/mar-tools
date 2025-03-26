@@ -1,12 +1,7 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
-using Unity.VisualScripting.YamlDotNet.Core;
 using UnityEngine.Events;
-
-
-
-
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -16,19 +11,36 @@ namespace MarTools.AI
 {
     public abstract class StateMachineBehavior : MonoBehaviour
     {
-        public List<IState> AllStates = new List<IState>();
         public IState activeState { get; private set; }
+
+        public Dictionary<string, IState> AllStates = new Dictionary<string, IState>();
+        public List<IState> AllStatesIndexed = new List<IState>();
+
+
+        [HideInInspector] public int startingStateIndex;
 
         protected virtual void Awake()
         {
-            AllStates = this.GetVariablesOfType<IState>(true);
+            Initialize();
 
-            Debug.Log(AllStates.Count);
+            foreach (var item in this.GetFieldsOfType<IState>(true))
+            {
+                IState state = item.GetValue(this) as IState;
+
+                AllStates.Add(item.Name, state);
+
+                AllStatesIndexed.Add(state);
+            }
         }
 
-        protected virtual void Start()
+        protected virtual void Initialize()
         {
-            Spawn();
+
+        }
+
+        private void Start()
+        {
+            ChangeState(AllStatesIndexed[startingStateIndex]);
         }
 
         private void Update()
@@ -39,20 +51,32 @@ namespace MarTools.AI
             }
         }
 
-        public void ChangeState<T>(State<T> newState) where T : StateMachineBehavior
+        public void ChangeState(IState newState)
         {
-            if(activeState != newState)
+            if (activeState != newState)
             {
                 IState prev = activeState;
 
                 activeState = newState;
-                
+
                 prev?.Exit(this, newState);
                 activeState?.Enter(this, prev);
             }
         }
 
-        public abstract void Spawn();
+        public void ChangeState(string stateName)
+        {
+            Debug.Log(stateName);
+
+            if(AllStates.TryGetValue(stateName, out IState newState))
+            {
+                ChangeState(newState);
+            }
+            else
+            {
+                Debug.LogWarning($"There is not state with the name of {stateName}");
+            }
+        }
 
         private void OnDrawGizmos()
         {
@@ -148,11 +172,24 @@ namespace MarTools.AI
             {
                 foreach (var item in script.AllStates)
                 {
-                    GUILayout.Label(item.Name);
+                    GUI.color = item.Value == script.activeState ? Color.green : Color.white;
+                    GUILayout.Label(item.Key);
                 }
             }
             else
             {
+                var states = script.GetFieldsOfType<IState>(true);
+
+                EditorGUI.BeginChangeCheck();
+
+                GUILayout.Label("Starting state:");
+                script.startingStateIndex = EditorGUILayout.Popup(script.startingStateIndex, states.ConvertAll<string>(x => x.Name).ToArray());
+
+                if (EditorGUI.EndChangeCheck()) 
+                {
+                    EditorUtility.SetDirty(script);
+                }
+                
                 base.OnInspectorGUI();
             }
         }

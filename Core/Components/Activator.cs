@@ -55,9 +55,24 @@ namespace MarTools
     }
 
 #if UNITY_EDITOR
-    public class ActivatorEditor : Editor
+    [CustomEditor(typeof(Activator))]
+    public class ActivatorEditor : MarToolsEditor<Activator>    
     {
+        public override void OnInspectorGUI()
+        {
+            base.OnInspectorGUI();
 
+            if(GUILayout.Button("Activate"))
+            {
+                script.Activate();
+            }
+            
+            if(GUILayout.Button("Deactivated"))
+            {
+                script.Deactivate();
+            }
+
+        }
     }
 #endif
 }

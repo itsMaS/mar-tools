@@ -22,10 +22,13 @@ namespace MarTools
 
         private void Update()
         {
-            progress += (speed / clip.length) * Time.deltaTime;
-            progress %= 1;
+            if(speed > 0)
+            {
+                progress += (speed / clip.length) * Time.deltaTime;
+                progress %= 1;
 
-            UpdateAnimation();
+                UpdateAnimation();
+            }
         }
 
         private void OnValidate()
@@ -35,6 +38,8 @@ namespace MarTools
     
         private void UpdateAnimation()
         {
+            if (!clip) return;
+
             Quaternion rot = transform.rotation;
             Vector3 pos = transform.position;
             Vector3 scale = transform.localScale;
@@ -43,6 +48,12 @@ namespace MarTools
             gameObject.transform.rotation = rot;
             gameObject.transform.position = pos;
             gameObject.transform.localScale = scale;
+        }
+
+        public void SetPose(float progress)
+        {
+            this.progress = progress;
+            UpdateAnimation();
         }
     }
     

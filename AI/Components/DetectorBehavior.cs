@@ -31,6 +31,12 @@ namespace MarTools.AI
             public List<IDetectable> ObjectsInView = new List<IDetectable>();
             private void FixedUpdate()
             {
+                if(!enabled)
+                {
+                    ObjectsInView.Clear();
+                    return;
+                }
+
                 List<IDetectable> NewObjectsInView = new List<IDetectable>();
 
                 foreach (var item in Physics.OverlapCapsule(origin.position - Vector3.up * 5, origin.position + Vector3.up * 5, viewRadius))
@@ -136,7 +142,10 @@ namespace MarTools.AI
 
             private void OnSceneGUI()
             {
-                behavior.origin.DrawVisibility(behavior.viewAngle, behavior.viewRadius, Color.red * new Color(1, 1, 1, behavior.ObjectsInView.Count > 0 ? 0.3f : 0.1f));
+                if(behavior.enabled)
+                {
+                    behavior.origin.DrawVisibility(behavior.viewAngle, behavior.viewRadius, Color.red * new Color(1, 1, 1, behavior.ObjectsInView.Count > 0 ? 0.3f : 0.1f));
+                }
             }
         }
     #endif

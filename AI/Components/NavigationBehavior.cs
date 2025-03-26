@@ -12,6 +12,8 @@ namespace MarTools.AI
     [RequireComponent(typeof(NavMeshAgent))]
     public class NavigationBehavior : MonoBehaviour
     {
+        public float startingMovementSpeed = 5;
+
         public string movementSpeedAnimatorParameter;
         NavMeshAgent agent;
 
@@ -21,6 +23,8 @@ namespace MarTools.AI
         {
             agent = GetComponent<NavMeshAgent>();
             an = GetComponentInChildren<Animator>();
+
+            agent.speed = startingMovementSpeed;
         }
 
         public void Patrol(List<Vector3> Points)
@@ -47,7 +51,7 @@ namespace MarTools.AI
 
         private void Update()
         {
-            if(an)
+            if(an && agent.enabled)
             {
                 an.SetFloat(movementSpeedAnimatorParameter, agent.velocity.MaskY().magnitude);
             }
@@ -56,6 +60,7 @@ namespace MarTools.AI
         public void Stop()
         {
             agent.enabled = false;
+            an.SetFloat(movementSpeedAnimatorParameter, 0);
         }
         public void Resume()
         {

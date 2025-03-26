@@ -20,8 +20,16 @@ namespace MarTools
             BoxCollider collider = triggerGO.AddComponent<BoxCollider>();
             collider.isTrigger = true;
 
+            if (Selection.activeGameObject)
+            {
+                triggerGO.transform.parent = Selection.activeGameObject.transform;
+            }
+
+
             Selection.activeGameObject = triggerGO;
             EditorGUIUtility.editingTextField = true;
+
+            trigger.checkFunction = new CompareTag() { tag = "Player" };
         }
 #endif
 
