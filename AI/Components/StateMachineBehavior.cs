@@ -187,15 +187,6 @@ namespace MarTools.AI
             }
             else
             {
-                var states = script.GetFieldsOfType<IState>(true);
-
-                EditorGUI.BeginChangeCheck();
-
-                if (EditorGUI.EndChangeCheck()) 
-                {
-                    EditorUtility.SetDirty(script);
-                }
-                
                 base.OnInspectorGUI();
             }
         }
