@@ -4,6 +4,7 @@ namespace MarTools
     using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
+    using Mono.CSharp;
     using UnityEngine;
     using UnityEngine.InputSystem;
 
@@ -16,11 +17,18 @@ namespace MarTools
 
         public RectTransform content;
 
-
         public InputActionReference scrollAction;
+        public bool fixedSize = false;
+        public int horizontalElementCount = 4;
+        public int verticalElementCount = 3;
+        public int leftSideIndex = 0;
+        public float shiftAmount = 100;
+        private float startX = 0;
 
+        public int elementCount = 0;
 
         Vector2 target;
+
 
         private void Awake()
         {
@@ -33,6 +41,9 @@ namespace MarTools
                 Debug.Log("Content rect tr not found");
                 return;
             }
+
+            startX = content.anchoredPosition.x;
+            target.y = content.anchoredPosition.y;
         }
 
         private void Start()
@@ -49,6 +60,8 @@ namespace MarTools
         public void UpdateElements()
         {
             Elements = GetComponentsInChildren<UIElement>().ToList();
+
+            elementCount = Elements.Count;
         }
 
         private void Scroll(Vector2 arg0)
@@ -70,11 +83,19 @@ namespace MarTools
 
         private void Update()
         {
+            if (fixedSize)
+                FixedMovement();
+            else
+                DynamicMovement();
+        }
+
+        private void DynamicMovement()
+        {
             var selected = Elements.Find(x => x.selected);
 
             target = new Vector2(Mathf.Clamp(target.x, -content.sizeDelta.x + Mathf.Min(rectTransform.sizeDelta.x, content.sizeDelta.x), 0), target.y);
-            
-            if(selected != null)
+
+            if (selected != null)
             {
                 var offsets = GetCornerOffsets(selected.rectTr, rectTransform);
                 //Debug.Log($"Offset:{offsets[0].x} | {offsets[2].x} Width:{rectTransform.sizeDelta.x}");
@@ -83,17 +104,42 @@ namespace MarTools
 
                 if (offsets[2].x > 0)
                 {
-                    target = content.anchoredPosition + new Vector2(-offsets[2].x, 0);
+                    target = content.anchoredPosition + new Vector2(-offsets[2].x * 1.1f, 0);
                     //Debug.Log("move right");
                 }
-                if (offsets[0].x < 0)
+                else if (offsets[0].x < 0)
                 {
-                    target = content.anchoredPosition + new Vector2(-offsets[0].x, 0);
+                    target = content.anchoredPosition + new Vector2(-offsets[0].x * 1.1f, 0);
                     //Debug.Log("move left");
                 }
             }
 
             content.anchoredPosition = Vector2.Lerp(content.anchoredPosition, target, Time.deltaTime * 20);
+        }
+
+        private void FixedMovement()
+        {
+            var selected = Elements.Find(x => x.selected);
+
+            if(selected != null)
+            {
+                var index = Elements.IndexOf(selected);
+
+                int maxRow = Math.Max((int)(Mathf.Ceil(Elements.Count / verticalElementCount)), 1);
+                int row = index % maxRow;
+
+                if(row >= leftSideIndex + horizontalElementCount)
+                {
+                    leftSideIndex = Math.Clamp(leftSideIndex + 1, 0, maxRow);
+                }else if(row < leftSideIndex)
+                {
+                    leftSideIndex = Math.Clamp(leftSideIndex - 1, 0, maxRow);
+                }
+            }
+
+            target = new Vector2(startX -leftSideIndex * shiftAmount, target.y);
+
+            content.anchoredPosition = Vector2.Lerp(content.anchoredPosition, target, Mathf.Clamp(Time.deltaTime * 20, 0, 1));
         }
 
         private List<Vector3> GetCornerOffsets(RectTransform inner, RectTransform outer)

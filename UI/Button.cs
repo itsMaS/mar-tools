@@ -13,14 +13,22 @@ namespace MarTools
     public class Button : UIElement
     {
         public UnityEvent OnClick;
+        public UnityEvent OnClickLocked;
         public UnityEvent<Vector2> OnUpdateCursorPositionNormalized;
         public UnityEvent<Vector2> OnUpdateCursorPositionPixel;
-    
+
         [HideInInspector] public Window navigatesTo;
 
         protected override void OnSubmitedInternal()
         {
+            if (locked)
+            {
+                OnClickLocked.Invoke();
+                return;
+            }
+            
             base.OnSubmitedInternal();
+
             OnClick.Invoke();
             if (!gameObject.activeInHierarchy) return;
 

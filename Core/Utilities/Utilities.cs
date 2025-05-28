@@ -6,6 +6,7 @@ namespace MarTools
     using System.Linq;
     using System.Reflection;
     using UnityEngine;
+    using UnityEngine.UI;
 
     public static class Utilities
     {
@@ -39,6 +40,23 @@ namespace MarTools
                 return behavior.StartCoroutine(DelayedCoroutine(time, onComplete, onUpdate, timeScaled, ease, curve));
             else
                 return null;
+        }
+
+        public static Coroutine MoveToTween(this MonoBehaviour behavior, Transform target, float duration, Vector3 targetPosition, Quaternion targetRotation, Action onComplete = null, bool timesScaled = true, Ease ease = Ease.InOutQuad)
+        {
+            Vector3 startPosition = target.position;
+            Quaternion startRotation = target.rotation;
+
+            return behavior.DelayedAction(duration, () =>
+            {
+                target.position = targetPosition;
+                target.rotation = targetRotation;
+                onComplete?.Invoke();
+            }, t =>
+            {
+                target.position = Vector3.Lerp(startPosition, targetPosition, t);
+                target.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
+            });
         }
 
         private static IEnumerator DelayedCoroutine(float duration, Action onComplete, Action<float> onUpdate, bool timeScaled = true, Ease ease = Ease.InOutSine, AnimationCurve curve = null)
@@ -95,6 +113,16 @@ namespace MarTools
             return closestElement;
         }
 
+
+        public static bool IsInAnyOfTheLayers(this GameObject go, LayerMask layers)
+        {
+            return ((1 << go.layer) & layers.value) != 0;
+        }
+        public static bool IsInAnyOfTheLayers(this GameObject go, params string[] layers)
+        {
+            return IsInAnyOfTheLayers(go, LayerMask.GetMask(layers));
+        }
+
         public static float Remap(this float input, Vector2 from, Vector2 to)
         {
             return Remap(input, from.x, from.y, to.x, to.y);
@@ -126,7 +154,28 @@ namespace MarTools
             return FindClosest<Vector2>(collection, target, item => item, out closestDistance);
         }
 
+        public static Vector3 Right(this Quaternion rotation)
+        {
+            return rotation * Vector3.right;
+        }
+        public static Vector3 Forward(this Quaternion rotation)
+        {
+            return rotation * Vector3.forward;
+        }
+        public static Vector3 Up(this Quaternion rotation)
+        {
+            return rotation * Vector3.up;
+        }
 
+        public static Vector3 RandomOffset(this Vector3 origin, float amplitude)
+        {
+            return Vector3.zero;
+        }
+
+        public static float AbsMax(float val1, float val2)
+        {
+            return Mathf.Abs(val1) >= Mathf.Abs(val2) ? val1 : val2;
+        }
 
         public enum Ease
         {
@@ -585,10 +634,10 @@ namespace MarTools
             return randomRotation * original;
         }
 
-        public static bool TryGetComponentInParent<T>(this GameObject go, out T component) where T : Component
+        public static bool TryGetComponentInParent<T>(this GameObject go, out T component)
         {
             component = go.GetComponentInParent<T>();
-            return component;
+            return component != null;
         }
 
         public static List<Vector3> GenerateSmoothPath(this List<Vector3> cpoints, float smoothingLength = 1, int smoothness = 5, bool looping = false)
@@ -716,5 +765,18 @@ namespace MarTools
             texture.Apply();
             return texture;
         }
+
+        /// <summary>
+        /// Checks whether this GameObject is in the DontDestroyOnLoad scene.
+        /// </summary>
+        /// <param name="go">The GameObject to test.</param>
+        /// <returns>True if the GameObject is in DontDestroyOnLoad; otherwise false.</returns>
+        public static bool IsInDontDestroyOnLoad(this GameObject go)
+        {
+            // In modern Unity versions (5.4+), objects under DontDestroyOnLoad
+            // are placed in a special scene named "DontDestroyOnLoad".
+            return go.scene.name == "DontDestroyOnLoad";
+        }
     }
 }
+

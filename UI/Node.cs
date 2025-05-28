@@ -134,6 +134,8 @@ namespace MarTools
         public Image[] Images;
         public TextMeshProUGUI[] Texts;
 
+        public GameObject[] GameObjects;
+
         public MarTools.Button button => GetComponent<MarTools.Button>();
     }
 }

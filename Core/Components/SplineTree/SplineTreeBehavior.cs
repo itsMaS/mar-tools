@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
-
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -19,9 +18,11 @@ namespace MarTools
             public List<string> Connections = new List<string>();
             public Vector3 position;
 
-            public Vector3 tangent1;
-            public Vector3 tangent2;
-
+            public Vector3 GetWorldPosition()
+            {
+                return anchorTransform ? anchorTransform.TransformPoint(position) : position;
+            }
+            public Transform anchorTransform;
 
             public void GenerateNewId()
             {
@@ -49,7 +50,7 @@ namespace MarTools
             for (int i = 0; i < Nodes.Count; i++)
             {
                 var node = Nodes[i];
-                Gizmos.DrawSphere(node.position, 0.2f);
+                Gizmos.DrawSphere(node.GetWorldPosition(), 0.2f);
 
                 foreach (var item in node.Connections)
                 {
@@ -57,7 +58,7 @@ namespace MarTools
                     var targetNode = Nodes.Find(x => x.id == item);
                     //Debug.Log(node.id + "||" + targetNode.id);
                     
-                    GizmosUtilities.DrawArrow(node.position, targetNode.position, 2);
+                    GizmosUtilities.DrawArrow(node.GetWorldPosition(), targetNode.GetWorldPosition(), 2);
                 }
             }
         }
@@ -105,6 +106,12 @@ namespace MarTools
             Added = Added.Distinct().ToList();
 
             return Added;
+        }
+
+        public List<SplineTreeNode> GetOutgoingNodes(SplineTreeNode initial)
+        {
+            List<SplineTreeNode> TargettedByThisNode = Nodes.Where(x => initial.Connections.Contains(x.id)).ToList();
+            return TargettedByThisNode;
         }
 
         private List<SplineTreeNode> GetNetworkNodes(SplineTreeNode initial)
@@ -167,9 +174,43 @@ namespace MarTools
             }
         }
 
-        internal SplineTreeBehavior.SplineTreeNode GetNode(string guid)
+        public SplineTreeBehavior.SplineTreeNode GetNode(string guid)
         {
             return Nodes.Find(x => x.id == guid);
+        }
+
+        public Vector3 GetClosestPointOnNetwork(Vector3 point)
+        {
+            Vector3 checkedPoint = point;
+            float minDist = float.MaxValue;
+            Vector3 closestPointTotal = Vector3.zero;
+            float minProgress = 0;
+
+            foreach (var connection in GetConnections())
+            {
+                Vector3 closestPoint = Utilities.ClosestPointOnLineSegment(checkedPoint, connection.nodeA.GetWorldPosition(), connection.nodeB.GetWorldPosition(), out float progress);
+                float sqrDistance = Vector3.SqrMagnitude(checkedPoint - closestPoint);
+                if (sqrDistance < minDist)
+                {
+                    closestPointTotal = closestPoint;
+                    minDist = sqrDistance;
+                    minProgress = progress;
+                }
+            }
+
+            return closestPointTotal;
+        }
+
+        public void Connect(SplineTreeNode nodeA, SplineTreeNode nodeB)
+        {
+            if(nodeA.Connections.Contains(nodeB.id) || nodeA == nodeB) return;
+            nodeA.Connections.Add(nodeB.id);
+        }
+
+        internal void Disconnect(SplineTreeNode nodeA, SplineTreeNode nodeB)
+        {
+            if(!nodeA.Connections.Contains(nodeB.id)) return;
+            nodeA.Connections.Remove(nodeB.id);
         }
     }
 
@@ -177,102 +218,113 @@ namespace MarTools
     [CustomEditor(typeof(SplineTreeBehavior))]
     public class SplineTreeBehaviorEditor : Editor
     {
-        private int selectedNodeIndex;
-        private int connectionIndex = -1;
-
-        private EditorPrefToggle showNetworkHash = new EditorPrefToggle("Show Network Hash", false);
-        private EditorPrefToggle showConnections = new EditorPrefToggle("Show Connections", false);
-
         SplineTreeBehavior script;
+        Vector3 worldCursorPosition;
+        List<SplineTreeBehavior.SplineTreeNode> SelectedNodes = new List<SplineTreeBehavior.SplineTreeNode>();
+
+        private Transform selectedParent;
+
+        EditorPrefToggle tutorialEnabled = new EditorPrefToggle("Enabled", false);
         private void OnEnable()
         {
             script = (SplineTreeBehavior)target;
             Tools.hidden = true;
+
+            EditorApplication.update += UpdateSceneGUI;
+
         }
         private void OnDisable()
         {
             Tools.hidden = false;
+            EditorApplication.update -= UpdateSceneGUI;
+        }
+        private void UpdateSceneGUI()
+        {
+            SceneView.RepaintAll();
+        }
+
+        private void UpdateWorldCursorPosition()
+        {
+            Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
+            if(Physics.Raycast(ray, out RaycastHit hitInfo, Mathf.Infinity, LayerMask.GetMask("Ground"), QueryTriggerInteraction.Ignore))
+            {
+                worldCursorPosition = hitInfo.point;
+            }
         }
 
         public override void OnInspectorGUI()
         {
             EditorGUI.BeginChangeCheck();
+            Undo.RecordObject(script, "SplineTreeBehavior");
 
-            showConnections.DrawToggle();
-            showNetworkHash.DrawToggle();
-
-            EditorGUILayout.Space(20);
-
-            for (int i = 0; i < script.Nodes.Count; i++)
+            GUILayout.Label("Operations", EditorStyles.boldLabel);
+            ///
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Clear points"))
             {
-                var node = script.Nodes[i];
+                script.Nodes.Clear();
+            }
+            if(GUILayout.Button("Select all nodes"))
+            {
+                SelectedNodes.Clear();
+                SelectedNodes.AddRange(script.Nodes);
+            }
+            if (GUILayout.Button("Deselect all nodes"))
+            {
+                SelectedNodes.Clear();
+            }
+            GUILayout.EndHorizontal();
+            ///
 
-                if (string.IsNullOrEmpty(node.id))
-                {
-                    node.GenerateNewId();
-                }
-
+            if(SelectedNodes.Count > 0)
+            {
                 GUILayout.BeginHorizontal();
 
-                if (i == selectedNodeIndex) GUI.color = Color.green;
+                var newTransform = EditorGUILayout.ObjectField(selectedParent, typeof(Transform)) as Transform;
+                selectedParent = newTransform;
 
-                if (GUILayout.Button("[]", EditorUtilities.GetButtonStyle(Color.gray, Color.white, 10, 10)))
+                if (GUILayout.Button("Assign parent to selected"))
                 {
-                    selectedNodeIndex = i;
-                }
-
-                node.position = EditorGUILayout.Vector3Field("", node.position);
-                if (GUILayout.Button("X", EditorUtilities.GetButtonStyle(Color.red, Color.white, 10, 10)))
-                {
-                    script.Nodes.Remove(node);
-
-                    foreach (var item in script.Nodes)
+                    if(selectedParent)
                     {
-                        item.Connections.Remove(node.id);
-                    }
-
-                }
-
-                GUI.color = Color.white;
-                GUILayout.EndHorizontal();
-
-                if(showNetworkHash.value)
-                {
-                    GUILayout.Label(node.GetSplineHash(script).ToString());
-                }
-
-                GUIStyle style = new GUIStyle(GUI.skin.label);
-                style.fontSize = 10;
-
-                if(showConnections.value)
-                {
-                    EditorGUILayout.LabelField($"GUID: {node.id}", style);
-
-                    EditorGUILayout.LabelField($"      Connections: {node.Connections.Count}", style);
-                    foreach (var connection in node.Connections.ToArray())
-                    {
-                        EditorGUILayout.BeginHorizontal();
-                        EditorGUILayout.Space(2);
-                        if(GUILayout.Button("X", EditorUtilities.GetButtonStyle(Color.red, Color.white, 10, 10, 5)))
+                        foreach (var item in SelectedNodes)
                         {
-                            node.Connections.Remove(connection);
+                            Vector3 offset = selectedParent.InverseTransformPoint(item.position);
+
+                            item.position = offset;
+                            item.anchorTransform = selectedParent;
                         }
-                        EditorGUILayout.LabelField($"{connection}", style);
-                        EditorGUILayout.EndHorizontal();
                     }
                 }
+                GUILayout.EndHorizontal();
             }
 
-            if(GUILayout.Button("Add new node"))
+            GUILayout.Space(20);
+            GUILayout.Label($"Selected nodes {SelectedNodes.Count}/{script.Nodes.Count}", EditorStyles.boldLabel);
+            GUILayout.Space(5);
+
+
+            foreach (var item in SelectedNodes)
             {
-                if(script.Nodes.Count > 0)
+                GUILayout.BeginHorizontal();
+                GUILayout.Label($"{item.id}");
+                var newTransform = EditorGUILayout.ObjectField(item.anchorTransform, typeof(Transform)) as Transform;
+
+                if(newTransform != item.anchorTransform)
                 {
-                    script.AddNode(script.Nodes.Last().position);
+                    Vector3 newPos = item.GetWorldPosition();
+
+                    if(newTransform)
+                    {
+                        newPos = newTransform.InverseTransformPoint(newPos);
+                    }
+
+                    item.position = newPos;
                 }
-                else
-                {
-                    script.AddNode(Vector3.zero);
-                }
+
+                item.anchorTransform = newTransform;
+
+                GUILayout.EndHorizontal();
             }
 
             if(EditorGUI.EndChangeCheck())
@@ -283,194 +335,210 @@ namespace MarTools
 
         private void OnSceneGUI()
         {
-            if(Event.current.shift)
-            {
-                ConnectionMode();
-            }
-            else if (Event.current.control)
-            {
-                PlacementMode();
-            }
-            else
-            {
-                NormalMode();
-            }
-        }
-        
-        private void PlacementMode()
-        {
-            for (int i = 0; i < script.Nodes.Count; i++)
-            {
-                var node = script.Nodes[i];
-                Handles.color = Color.white;
-
-                float size = HandleUtility.GetHandleSize(node.position);
-                Handles.color = Color.red;
-                if (Handles.Button(node.position, Quaternion.identity, size * 0.15f, size * 0.2f, Handles.SphereHandleCap))
-                {
-                    script.RemoveNode(node);
-
-                    return;
-                }
-            }
-
-            if (Event.current.type == EventType.MouseDown)
-            {
-                EditorGUI.BeginChangeCheck();
-                Undo.RecordObject(script, "");
-
-                Vector3 insertPointWorldCoordinate = Vector3.zero;
-
-                float floorLevel = 0;
-                if (selectedNodeIndex > 0) floorLevel = script.Nodes[selectedNodeIndex].position.y;
-
-                Plane plane = new Plane(Vector3.up, -floorLevel);
-                Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
-                if (plane.Raycast(ray, out float distance))
-                {
-                    insertPointWorldCoordinate = ray.GetPoint(distance);
-                }
-
-                float closestDistance = float.MaxValue;
-                Vector3 placementPoint = Vector3.zero;
-                SplineTreeBehavior.SplineTreeNode nodeA = null;
-                SplineTreeBehavior.SplineTreeNode nodeB = null;
-
-                foreach (var connection in script.GetConnections())
-                {
-                    var prevNode = connection.nodeA;
-                    var nextNode = connection.nodeB;
-
-                    Vector3 closesPoint = Utilities.ClosestPointOnLineSegment(insertPointWorldCoordinate, prevNode.position, nextNode.position, out float progress);
-                    float dist = Vector3.Distance(closesPoint, insertPointWorldCoordinate);
-
-                    if (dist < closestDistance)
-                    {
-                        closestDistance = dist;
-                        placementPoint = closesPoint;
-
-                        nodeA = prevNode;
-                        nodeB = nextNode;
-                    }
-                }
-
-                if (closestDistance > 1)
-                {
-                    script.AddNode(insertPointWorldCoordinate);
-                }
-                else
-                {
-                    nodeA.Connections.Remove(nodeB.id);
-                    var newNode = script.AddNode(placementPoint);
-
-                    nodeA.Connections.Add(newNode.id);
-                    newNode.Connections.Add(nodeB.id);
-                }
-
-
-
-
-
-                Event.current.Use();
-
-                if (EditorGUI.EndChangeCheck())
-                {
-                    EditorUtility.SetDirty(script);
-                }
-            }
-        }
-
-        private void NormalMode()
-        {
-            for (int i = 0; i < script.Nodes.Count; i++)
-            {
-                var node = script.Nodes[i];
-
-                EditorGUI.BeginChangeCheck();
-                Undo.RecordObject(script, "");
-
-
-                node.position = Handles.PositionHandle(node.position, Quaternion.identity);
-
-                if (EditorGUI.EndChangeCheck())
-                {
-                    selectedNodeIndex = i;
-                    EditorUtility.SetDirty(script);
-                }
-
-
-                foreach (var connectionID in node.Connections)
-                {
-                    Handles.color = selectedNodeIndex == i ? Color.green : Color.white;
-
-
-                    var targetNode = script.Nodes.Find(x => x.id == connectionID);
-                    Handles.DrawLine(node.position, targetNode.position, 0.5f);
-                }
-
-                Handles.color = selectedNodeIndex == i ? Color.green : Color.white;
-
-                float size = HandleUtility.GetHandleSize(node.position)*0.2f;
-                Handles.SphereHandleCap(0, node.position, Quaternion.identity, size, EventType.Repaint);
-            }
-        }
-
-        private void ConnectionMode()
-        {
             EditorGUI.BeginChangeCheck();
-            Undo.RecordObject(script, "");
+            Undo.RecordObject(script, "SplineTreeBehavior");
+            Undo.RecordObject(this, "Editor");
 
-            for (int i = 0; i < script.Nodes.Count; i++)
+            SelectedNodes.RemoveAll(x => !script.Nodes.Contains(x));
+
+            UpdateWorldCursorPosition();
+
+            
+            if(!Event.current.control)
             {
-                var node = script.Nodes[i];
-                Handles.color = Color.white;
-
-                float size = HandleUtility.GetHandleSize(node.position);
-                if(connectionIndex >= 0)
+                foreach (var item in script.Nodes)
                 {
-                    var targetNode = script.Nodes[connectionIndex];
+                    bool selected = SelectedNodes.Contains(item);
 
-                    if(connectionIndex == i)
+                    Handles.color = selected ? Color.green : Color.white;
+
+                    if (selected && (Tools.current == Tool.Move && !Event.current.shift)) continue;
+
+                    Vector3 buttonPosition = item.GetWorldPosition(); 
+                    float buttonSize = HandleUtility.GetHandleSize(buttonPosition) * 0.5f;
+                    buttonSize = Mathf.Min(buttonSize, 1.5f);
+
+
+                    if (Handles.Button(buttonPosition, Quaternion.identity, selected ? buttonSize*1.1f : buttonSize, buttonSize, Handles.SphereHandleCap))
                     {
-                        Handles.color = Color.green;
-                        if (Handles.Button(node.position, Quaternion.identity, size * 0.15f, size * 0.2f, Handles.SphereHandleCap))
+                        if(Event.current.shift)
                         {
-                            connectionIndex = -1;
-                        }
-                    }
-                    else
-                    {
-                        if (targetNode.Connections.Contains(node.id))
-                        {
-                            Handles.color = Color.red;
-                            if (Handles.Button(node.position, Quaternion.identity, size * 0.15f, size * 0.2f, Handles.SphereHandleCap))
+                            if(SelectedNodes.Contains(item))
                             {
-                                targetNode.Connections.Remove(node.id);
-                                connectionIndex = -1;
+                                SelectedNodes.Remove(item);
+                            }
+                            else
+                            {
+                                SelectedNodes.Add(item);
                             }
                         }
                         else
                         {
-                            Handles.color = Color.white;
-                            if (Handles.Button(node.position, Quaternion.identity, size * 0.15f, size * 0.2f, Handles.SphereHandleCap))
-                            {
-                                targetNode.Connections.Add(node.id);
-                                connectionIndex = -1;
-                            }
+                            SelectedNodes.Clear();
+                            SelectedNodes.Add(item);
                         }
 
-
-                    }
-                }
-                else
-                {
-                    if (Handles.Button(node.position, Quaternion.identity, size*0.15f, size*0.2f, Handles.SphereHandleCap))
-                    {
-                        connectionIndex = i;
-                        break;
+                        Repaint();
                     }
                 }
             }
+
+            if (Tools.current == Tool.Move && !Event.current.shift && !Event.current.control)
+            {
+                foreach (var item in SelectedNodes)
+                {
+                    Vector3 newPos = Handles.PositionHandle(item.GetWorldPosition(), Quaternion.identity);
+                    if (newPos != item.GetWorldPosition())
+                    {
+                        item.position = item.anchorTransform ? item.anchorTransform.InverseTransformPoint(newPos) : newPos;
+                    }
+                }
+
+            }
+
+            var closestNodeToCursor = script.Nodes.Count == 0 ? null : script.Nodes.FindClosest(worldCursorPosition, x => x.GetWorldPosition(), out float dist);
+
+            if (Event.current.alt)
+            {
+                Handles.zTest = UnityEngine.Rendering.CompareFunction.Less;
+                Handles.DrawWireDisc(worldCursorPosition, Vector3.up, 0.5f, 2);
+
+                var connections = script.GetConnections();
+
+                SplineTreeBehavior.Connection closestConnection = null;
+                if (connections.Count > 0)
+                {
+                    closestConnection = connections.FindClosest(worldCursorPosition, x =>
+                    {
+                        return Utilities.ClosestPointOnLineSegment(worldCursorPosition, x.nodeA.GetWorldPosition(), x.nodeB.GetWorldPosition(), out float progress);
+                    }, out float distance);
+                    if(distance < 2)
+                    {
+                        Handles.DrawLine(worldCursorPosition, closestConnection.nodeB.GetWorldPosition());
+                        Handles.DrawLine(worldCursorPosition, closestConnection.nodeA.GetWorldPosition());
+                    }
+                    else
+                    {
+                        closestConnection = null;
+                    }
+                }
+
+                if (closestNodeToCursor != null)
+                {
+                    Handles.color = Color.red;
+                    Handles.DrawWireDisc(closestNodeToCursor.GetWorldPosition(), Vector3.up, 0.5f, 2);
+                }
+
+
+                if (Event.current.type == EventType.MouseDown)
+                {
+                    if(Event.current.button == 0)
+                    {
+                        var node = script.AddNode(worldCursorPosition);
+                        
+                        if(closestConnection != null)
+                        {
+                            closestConnection.nodeA.Connections.Add(node.id);
+                            node.Connections.Add(closestConnection.nodeB.id);
+
+                            closestConnection.nodeA.Connections.RemoveAll(x => x == closestConnection.nodeB.id);
+                            closestConnection.nodeB.Connections.RemoveAll(x => x == closestConnection.nodeA.id);
+                        }
+                        else
+                        {
+                            if(SelectedNodes.Count > 0)
+                            {
+                                script.Connect(SelectedNodes.First(), node);
+                            }
+                        }
+                        
+                        SelectedNodes.Clear();
+                        SelectedNodes.Add(node);
+                    }
+                    else if(Event.current.button == 1)
+                    {
+                        if (closestNodeToCursor != null)
+                        {
+                            if (SelectedNodes.Contains(closestNodeToCursor))
+                            {
+                                SelectedNodes.Remove(closestNodeToCursor);
+                            }
+
+                            script.RemoveNode(closestNodeToCursor);
+                        }
+                    }
+
+                    Event.current.Use();
+                }
+            }
+            else if(Event.current.control)
+            {
+                if (Event.current.type == EventType.MouseDown)
+                {
+                    if (Event.current.button == 0)
+                    {
+                        foreach (var item in SelectedNodes)
+                        {
+                            script.Connect(item, closestNodeToCursor);
+                        }
+                        SelectedNodes.Clear();
+                        SelectedNodes.Add(closestNodeToCursor);
+                    }
+                    else if (Event.current.button == 1)
+                    {
+                        foreach (var item in SelectedNodes)
+                        {
+                            script.Disconnect(item, closestNodeToCursor);
+                        }
+                    }
+
+                    Event.current.Use();
+                }
+
+
+                foreach (var item in SelectedNodes)
+                {
+                    Handles.DrawDottedLine(item.GetWorldPosition(), worldCursorPosition, 5);
+                }
+            }
+
+            Handles.BeginGUI();
+
+            Rect rect = new Rect(10, 10, 250, tutorialEnabled.value ? 220 : 25);
+
+            GUILayout.BeginArea(rect, GUI.skin.box);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Tutorial", EditorStyles.boldLabel);
+            tutorialEnabled.DrawToggle();
+
+            GUILayout.EndHorizontal();
+
+
+            GUI.color = Event.current.alt ? Color.white : Color.white.SetAlpha(0.5f);
+            GUILayout.Label("-Node placement Mode [Alt]");
+            GUILayout.Label("   Place [LMB]");
+            GUILayout.Label("   Remove [RMB]");
+
+            GUI.color = Event.current.control ? Color.white : Color.white.SetAlpha(0.5f);
+            GUILayout.Label("-Connection Mode (Ctrl)");
+            GUILayout.Label("   Connect from selected [LMB]");
+            GUILayout.Label("   Disconnect from selected [RMB]");
+
+            GUI.color = Event.current.shift ? Color.white : Color.white.SetAlpha(0.5f);
+            GUILayout.Label("-Selection");
+            GUILayout.Label("   Hold [Shift] to select/deselect multiple");
+
+
+            GUILayout.EndArea();
+            Handles.EndGUI();
+
+            if(Event.current.type == EventType.MouseDown && Event.current.button == 0)
+            {
+                SelectedNodes.Clear();
+                Event.current.Use();
+            }
+
 
             if(EditorGUI.EndChangeCheck())
             {

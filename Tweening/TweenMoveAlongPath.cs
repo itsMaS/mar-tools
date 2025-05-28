@@ -24,6 +24,8 @@ namespace MarTools
             {
                 target = Quaternion.LookRotation(p.Item2.Item1, Vector3.up);
             }
+
+            lastInterpolator = t;
         }
 
         private void Update()

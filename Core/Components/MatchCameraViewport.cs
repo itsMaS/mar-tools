@@ -19,6 +19,9 @@ namespace MarTools
 
             rt.anchorMin = new Vector2(cam.rect.x, cam.rect.y);
             rt.anchorMax = new Vector2(cam.rect.x + cam.rect.width, cam.rect.y + cam.rect.height);
+
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
         }
     }
 }

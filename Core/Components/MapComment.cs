@@ -23,6 +23,7 @@ namespace MarTools
         [SerializeField] bool scaleWithDistance = true;
     
         public Vector2 fontSizeBounds = new Vector2(1, 30);
+        public Color textColor = Color.white;
     
         private void OnDrawGizmos()
         {
@@ -37,7 +38,7 @@ namespace MarTools
             int fontSize = scaleWithDistance ? Mathf.RoundToInt(size / scale) : Mathf.RoundToInt(size);
     
             float distanceToEdge = Mathf.Min(Mathf.Abs(fontSizeBounds.x-fontSize), Mathf.Abs(fontSizeBounds.y-fontSize));
-            Color color = Color.white;
+            Color color = textColor;
             color.a = Mathf.InverseLerp(20, 10, distanceToEdge);
 
             Handles.color = color;

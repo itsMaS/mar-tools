@@ -19,6 +19,12 @@ namespace MarTools
         [SerializeField] Image bottomFill;
         [SerializeField] Image topFill;
 
+        [Tooltip("The duration it takes to fill the whole slider from 0 to 1")]
+        public float fillDuration = 1;
+
+        [Tooltip("Delay for the animated bar to start moving after the instant one has been set")]
+        public float secondBarDelay = 0f;
+
         public void Add(float amount)
         {
             SetValue(currentValue + amount);
@@ -80,15 +86,20 @@ namespace MarTools
             float startValue = image.fillAmount.Remap(mapping, new Vector2(0,1));
             float delta = Mathf.Abs(target - startValue);
 
-            if (delta > 0.1f)
-            {
-                this.DelayedAction(0.5f, () =>
-                {
+            float duration = delta * fillDuration;
 
-                }, t =>
+            if (delta > 0.001f)
+            {
+                this.DelayedAction(secondBarDelay, () =>
                 {
-                    image.fillAmount = Mathf.Lerp(startValue, target, t).Remap(new Vector2(0, 1), mapping);
-                }, false, Utilities.Ease.OutQuad);
+                    this.DelayedAction(duration, () =>
+                    {
+
+                    }, t =>
+                    {
+                        image.fillAmount = Mathf.Lerp(startValue, target, t).Remap(new Vector2(0, 1), mapping);
+                    }, false, Utilities.Ease.OutQuad);
+                });
             }
             else
             {

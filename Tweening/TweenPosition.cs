@@ -27,6 +27,27 @@ namespace MarTools
                 transform.position = Vector3.LerpUnclamped(from, to, t);
             }
         }
+
+        public override float GetDistance(out string units)
+        {
+            units = "units/s";
+            return Vector3.Distance(from, to);
+        }
+
+        protected override void OnDrawGizmos()
+        {
+            base.OnDrawGizmos();
+
+            if(transform.parent)
+            {
+                GizmosUtilities.DrawArrow(transform.parent.TransformPoint(from), transform.parent.TransformPoint(to));
+            }
+            else
+            {
+                GizmosUtilities.DrawArrow(from, to);
+            }
+
+        }
     }
     
 }

@@ -331,6 +331,7 @@ namespace MarTools
     
         public override void OnInspectorGUI()
         {
+            EditorGUI.BeginChangeCheck();
             lineDrawer.lineColor = EditorGUILayout.ColorField("Color", lineDrawer.lineColor);
             lineDrawer.smoothing = EditorGUILayout.IntSlider("Smoothing", lineDrawer.smoothing, 0, 100);
             lineDrawer.looping = EditorGUILayout.Toggle("Looping", lineDrawer.looping);
@@ -404,6 +405,11 @@ namespace MarTools
                 lineDrawer.points.Add(newPoint + Vector3.up);
             }
 
+            if(GUILayout.Button("Cast to ground"))
+            {
+                CastToGround();
+            }
+
 
             GUILayout.Label("Points");
             pointsFoldout = EditorGUILayout.Foldout(pointsFoldout, "Points List", true);
@@ -413,6 +419,11 @@ namespace MarTools
                 {
                     lineDrawer.points[i] = EditorGUILayout.Vector3Field($"P{i}", lineDrawer.points[i]);
                 }
+            }
+
+            if(EditorGUI.EndChangeCheck())
+            {
+                EditorUtility.SetDirty(lineDrawer);
             }
         }
     
@@ -471,6 +482,8 @@ namespace MarTools
             Handles.DrawWireDisc(ground, Vector3.up, 0.2f);
 
             Handles.DrawDottedLine(real, ground, 0.5f);
+
+
         }
 
         private void DrawGrid()
@@ -675,6 +688,19 @@ namespace MarTools
             }
         }
 
+
+        public void CastToGround()
+        {
+            var worldPoints = lineDrawer.worldPoints;
+            for (int i = 0; i < worldPoints.Count; i++)
+            {
+                Vector3 point = worldPoints[i];
+                if (Physics.Raycast(new Ray(point + Vector3.up * 1000, Vector3.down), out RaycastHit hit, Mathf.Infinity, ~0, QueryTriggerInteraction.Ignore))
+                {
+                    lineDrawer.points[i] = lineDrawer.transform.InverseTransformPoint(hit.point);
+                }
+            }
+        }
 
     }
 #endif

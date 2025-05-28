@@ -43,6 +43,7 @@ namespace MarTools
     public class MarToolsEditor<T> : Editor where T : UnityEngine.Object
     {
         protected T script;
+        protected List<T> scripts => targets.Cast<T>().ToList();
 
         protected virtual void OnEnable()
         {
@@ -121,14 +122,15 @@ namespace MarTools
 
         public static List<Type> GetImplementationsOfInterface<TInterface>()
         {
-            // Get the interface type
             var interfaceType = typeof(TInterface);
-
-            // Get all types in the current assembly (or other assemblies, if needed)
-            var types = Assembly.GetAssembly(interfaceType).GetTypes();
-
-            // Filter types that are classes and implement the interface
-            return types.Where(t => t.IsClass && !t.IsAbstract && interfaceType.IsAssignableFrom(t)).ToList();
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a =>
+                {
+                    try { return a.GetTypes(); }
+                    catch (ReflectionTypeLoadException ex) { return ex.Types.Where(t => t != null); }
+                })
+                .Where(t => t != null && t.IsClass && !t.IsAbstract && interfaceType.IsAssignableFrom(t))
+                .ToList();
         }
 
         public static GUIStyle GetButtonStyle(Color bgColor, Color textColor, float width, float height, int textSize = 10)

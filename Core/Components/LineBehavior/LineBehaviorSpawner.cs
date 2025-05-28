@@ -37,7 +37,7 @@ namespace MarTools
         {
             get
             {
-                string name = groupName.Length > 0 ? $"{groupName}" : $"Elements {this.GetComponentIndex()}";
+                string name = groupName.Length > 0 ? groupName : $"Elements {this.GetComponentIndex()}";
                 var p = transform.Find(name);
                 if(!p)
                 {
@@ -58,9 +58,28 @@ namespace MarTools
         [HideInInspector] public RandomUtilities.WeightedList<GameObject> Options = new RandomUtilities.WeightedList<GameObject>();
         public bool useLocalPosition = true;
 
+
+        public bool useRaycasting = false;
+        public LayerMask raycastHitMask;
+
         public void UpdateEditor()
         {
             SpawnPositions = UpdatePositions();
+
+            foreach (var position in SpawnPositions.ToArray())
+            {
+                if(useRaycasting)
+                {
+                    if(Physics.Raycast(new Ray(position.position + Vector3.up * 1000, Vector3.down), out RaycastHit hit, Mathf.Infinity, raycastHitMask, QueryTriggerInteraction.Ignore))
+                    {
+                        position.position = hit.point;
+                    }
+                    else
+                    {
+                        SpawnPositions.Remove(position);
+                    }
+                }
+            }
 
             if(OutsideOf != null && OutsideOf.Count > 0)
             {
@@ -75,6 +94,9 @@ namespace MarTools
 
         public GameObject AddElement(GameObject go, Vector3 position, Quaternion rotation, Vector3 scale)
         {
+
+
+
             GameObject instantiated = null;
 
 #if UNITY_EDITOR
@@ -102,7 +124,10 @@ namespace MarTools
         {
             if(Application.isPlaying)
             {
-                Destroy(parent.gameObject);
+                foreach (Transform item in parent)
+                {
+                    Destroy(item.gameObject);
+                }
             }
             else
             {

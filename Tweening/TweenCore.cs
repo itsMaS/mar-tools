@@ -38,16 +38,19 @@ namespace MarTools
         public Utilities.Ease backwardsEase = Utilities.Ease.InOutQuad;
 
         public bool local = true;
-        public float duration = 1f;
+        [HideInInspector] public float duration = 1f;
         private Coroutine coroutine;
         private bool forward = false;
 
-        private float lastInterpolator;
+        protected float lastInterpolator;
 
         public AnimationCurve curve;
         private void Awake()
         {
-            SetPose(startingPosition);
+            if(enabled)
+            {
+                SetPose(startingPosition);
+            }
         }
 
         protected virtual void Reset()
@@ -59,6 +62,7 @@ namespace MarTools
         {
             if (playOnEnable)
             {
+                SetPose(startingPosition);
                 PlayForwards();
             }
         }
@@ -99,7 +103,9 @@ namespace MarTools
 
             forward = true;
             ResetCoroutine();
-            coroutine = this.DelayedAction(duration, () =>
+
+            var correctedDuration = looping ? duration - duration * from : duration;
+            coroutine = this.DelayedAction(correctedDuration, () =>
             {
                 OnPlayedForwards.Invoke();
                 OnPlayed.Invoke();
@@ -110,6 +116,7 @@ namespace MarTools
                 }
                 else if (looping)
                 {
+                    lastInterpolator = 0;
                     PlayForwards();
                 }
             }, t =>
@@ -204,6 +211,17 @@ namespace MarTools
         {
             PlayForward();
         }
+
+        protected virtual void OnDrawGizmos()
+        {
+
+        }
+
+        public virtual float GetDistance(out string units)
+        {
+            units = "";
+            return -1;
+        }
     }
     
     #if UNITY_EDITOR
@@ -214,6 +232,7 @@ namespace MarTools
         float pose;
         bool playing = false;
 
+        bool durationBased = true;
 
         TweenCore script;
     
@@ -221,11 +240,52 @@ namespace MarTools
         {
             var script = (TweenCore)target;
             base.OnInspectorGUI();
+
+            EditorGUI.BeginChangeCheck();
+
+            GUILayout.BeginHorizontal();
+
+            if(script.GetDistance(out var _) >= 0)
+            {
+                if(durationBased)
+                {
+                    script.duration = EditorGUILayout.FloatField("Duration" ,script.duration);
+                }
+                else
+                {
+                    float distance = script.GetDistance(out string units);
+                    float speed = distance / script.duration;
+                    script.duration = distance / EditorGUILayout.FloatField("Duration", speed);
+                    GUILayout.Label($"{units}");
+                }
+
+                if(GUILayout.Button($"{(durationBased ? "Duration based" : "Speed based")}"))
+                {
+                    durationBased = !durationBased;
+                    return;
+                }
+            }
+            else
+            {
+                script.duration = EditorGUILayout.FloatField("Duration", script.duration);
+            }
+
+
+            GUILayout.EndHorizontal();
+
+
+
+            if(EditorGUI.EndChangeCheck())
+            {
+                EditorUtility.SetDirty(script);
+            }
+
+
             if(!Application.isPlaying)
             {
                 float newPose = EditorGUILayout.Slider(pose, 0, 1);
     
-                if(!playing)
+                if(!playing && script.enabled)
                 {
                     script.SetPose(newPose);
                     pose = newPose;
@@ -280,8 +340,16 @@ namespace MarTools
             EditorApplication.update += EditorUpdate;
 
             script = (TweenCore)target;
-            script.SetPose(script.startingPosition);
-            pose = script.startingPosition;
+
+            if (Application.isPlaying) return;
+
+            float pos = script.startingPosition;
+            if (script.enabled)
+            {
+                pos = script.playOnEnable ? 1 : script.startingPosition;
+                script.SetPose(pos);
+            }
+            pose = pos;
 
         }
         private void OnDisable()

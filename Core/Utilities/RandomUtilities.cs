@@ -118,10 +118,15 @@ namespace MarTools
         /// <returns></returns>
         public static T PickRandom<T>(this IEnumerable<T> collection)
         {
+            return PickRandom<T>(collection, new Vector2Int(0, collection.ToArray().Length));
+        }
+
+        public static T PickRandom<T>(this IEnumerable<T> collection, Vector2Int bounds)
+        {
             var array = collection.ToArray();
             if (array != null && array.Length != 0)
             {
-                return array[UnityEngine.Random.Range(0, array.Length)];
+                return array[UnityEngine.Random.Range(bounds.x, bounds.y)];
             }
             else
             {

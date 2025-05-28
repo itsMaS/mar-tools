@@ -9,7 +9,8 @@ namespace MarTools
     using UnityEngine.EventSystems;
     using UnityEngine.InputSystem;
     using UnityEngine.UI;
-    
+
+    [DefaultExecutionOrder(-200)]
     [RequireComponent(typeof(Canvas), typeof(GraphicRaycaster))]
     public class UIManager : MonoBehaviour
     {
@@ -19,23 +20,27 @@ namespace MarTools
             Pointer
         }
 
-        public int playerIndex { get; private set; } = -1;
-
         public NavigationType currentNavigationType;
-    
+
         public InputActionReference submitAction;
         public InputActionReference navigationVector;
         public InputActionReference cancelAction;
         public InputActionReference nextTabAction;
         public InputActionReference previousTabAction;
-    
+        public InputActionReference extraLeftAction; // Left trigger
+        public InputActionReference extraRightAction; // Right trigger
+        public InputActionReference extraButtonAction; // Left facing key
+        public InputActionReference pauseAction;
+
         private GraphicRaycaster graphicRaycaster;
         private EventSystem eventSystem;
 
         public UIElement selected;
         public UIElement lastNotNull { get; private set; }
         List<UIElement> MouseHoveredButtons = new List<UIElement>();
-    
+
+        public PlayerInput playerInput;
+
         //public string lastMap 
         PointerEventData pointerData;
         public Canvas canvas { get; private set; }
@@ -44,17 +49,32 @@ namespace MarTools
         public bool holdingSubmit { get; private set; } = false;
         public Camera cam;
 
-
         public UnityEvent OnSelect;
+        public UnityEvent OnSelectLocked;
         public UnityEvent OnSubmit;
+        public UnityEvent OnSubmitLocked;
 
         public List<UIElement> EnabledUIElements = new List<UIElement>();
 
+        public bool blockNavigation { get; private set; } = false;
         private Coroutine navigationComboCoroutine;
 
         public bool isPointerOverUI { get; private set; } = false;
+
+        [HideInInspector] public System.Action<InputAction.CallbackContext> OnSubmitHandover;
+        [HideInInspector] public System.Action<InputAction.CallbackContext> OnBackHandover;
+        [HideInInspector] public System.Action<InputAction.CallbackContext> OnNavigateHandover;
+        [HideInInspector] public System.Action<InputAction.CallbackContext> OnNextTabHandover;
+        [HideInInspector] public System.Action<InputAction.CallbackContext> OnPreviousTabHandover;
+        [HideInInspector] public System.Action<InputAction.CallbackContext> OnExtraButtonHandover;
+        [HideInInspector] public System.Action<InputAction.CallbackContext> OnExtraLeftHandover;
+        [HideInInspector] public System.Action<InputAction.CallbackContext> OnExtraRightHandover;
+        [HideInInspector] public System.Action<InputAction.CallbackContext> OnPauseHandover;
+        private bool _handover = false;
+        
         private void Awake()
         {
+            blockNavigation = false;
             eventSystem = GetComponent<EventSystem>();
             graphicRaycaster = GetComponent<GraphicRaycaster>();
 
@@ -63,43 +83,52 @@ namespace MarTools
 
             if (!cam) cam = GetComponentInParent<Camera>();
             if (!cam) cam = FindObjectOfType<Camera>();
-
         }
 
-        private void Start()
+        private void SubscribeDefaultInputs()
         {
             SubscribeInput(submitAction, Submit);
             SubscribeInput(navigationVector, Navigate);
 
             SubscribeInput(nextTabAction, NextTab);
             SubscribeInput(previousTabAction, PreviousTab);
+
+            SubscribeInput(cancelAction, Cancel);
+            SubscribeInput(extraLeftAction, ExtraLeft);
+            SubscribeInput(extraRightAction, ExtraRight);
+            SubscribeInput(extraButtonAction, ExtraButton);
+
+            SubscribeInput(pauseAction, Pause);
+        }
+
+        private void UnsubscribeDefaultInputs()
+        {
+            UnsubscribeInput(submitAction, Submit);
+            UnsubscribeInput(navigationVector, Navigate);
+
+            UnsubscribeInput(nextTabAction, NextTab);
+            UnsubscribeInput(previousTabAction, PreviousTab);
+
+            UnsubscribeInput(cancelAction, Cancel);
+            UnsubscribeInput(extraLeftAction, ExtraLeft);
+            UnsubscribeInput(extraRightAction, ExtraRight);
+            UnsubscribeInput(extraButtonAction, ExtraButton);
+            
+            UnsubscribeInput(pauseAction, Pause);
         }
 
         public InputAction ResolveAction(InputActionReference reference)
         {
-            PlayerInput input = PlayerInput.GetPlayerByIndex(playerIndex);
-            if (playerIndex >= 0)
-            {
-                if(!input)
-                {
-                    Debug.LogError($"Player with the index of {playerIndex} does not exist");
-                    return null;
-                }
-                else
-                {
-                    if (!input.actions) return null;
-                    return input.actions[reference.name];
-                }
-            }
-            else
-            {
+            if(!playerInput)
                 return reference.action;
-            }
+                
+            if (!playerInput.actions) return null;
+            return playerInput.actions[reference.name];
         }
 
-        public void SetPlayerIndex(int index)
+        public void SetPlayerInput(int playerIndex)
         {
-            playerIndex = index;
+            playerInput = PlayerInput.GetPlayerByIndex(playerIndex);
             EnableInput();
         }
 
@@ -107,13 +136,87 @@ namespace MarTools
         {
             EnableInput();
         }
+       
         private void OnDisable()
         {
             DisableInput();
         }
 
+        private void Cancel(InputAction.CallbackContext obj) 
+        {
+            if (_handover)
+            {
+                if (obj.phase != InputActionPhase.Performed && obj.phase != InputActionPhase.Canceled)
+                    return;
+
+                OnBackHandover.Invoke(obj);
+                return;
+            }
+        }
+        private void ExtraLeft(InputAction.CallbackContext obj) 
+        {
+            if (_handover)
+            {
+                if (obj.phase != InputActionPhase.Performed && obj.phase != InputActionPhase.Canceled)
+                    return;
+
+                OnExtraLeftHandover.Invoke(obj);
+                return;
+            }
+        }
+        private void ExtraRight(InputAction.CallbackContext obj) 
+        {
+            if (_handover)
+            {
+                if (obj.phase != InputActionPhase.Performed && obj.phase != InputActionPhase.Canceled)
+                    return;
+
+                OnExtraRightHandover.Invoke(obj);
+                return;
+            }
+        }
+
+        private void Pause(InputAction.CallbackContext obj)
+        {
+            if (blockNavigation)
+                return;
+
+            if (_handover)
+            {
+                if (obj.phase != InputActionPhase.Performed && obj.phase != InputActionPhase.Canceled)
+                    return;
+
+                OnPauseHandover.Invoke(obj);
+                return;
+            }
+        }
+
+        private void ExtraButton(InputAction.CallbackContext obj)
+        {
+            if (_handover)
+            {
+                if (obj.phase != InputActionPhase.Performed && obj.phase != InputActionPhase.Canceled)
+                    return;
+
+                OnExtraButtonHandover.Invoke(obj);
+                return;
+            }
+        }
+
         private void PreviousTab(InputAction.CallbackContext obj)
         {
+            if (blockNavigation)
+                return;
+
+            if(_handover)
+            {
+                if (obj.phase != InputActionPhase.Performed && obj.phase != InputActionPhase.Canceled)
+                    return;
+
+                OnPreviousTabHandover.Invoke(obj);
+                return;
+            }
+            
             if (obj.phase != InputActionPhase.Performed) return;
 
             GetComponentsInChildren<TabGroup>().ToList().ForEach(x =>
@@ -121,8 +224,21 @@ namespace MarTools
                 if (x.gameObject.activeInHierarchy) x.PreviousTab();
             });
         }
+
         private void NextTab(InputAction.CallbackContext obj)
         {
+            if (blockNavigation)
+                return;
+
+            if (_handover)
+            {
+                if (obj.phase != InputActionPhase.Performed && obj.phase != InputActionPhase.Canceled)
+                    return;
+
+                OnNextTabHandover.Invoke(obj);
+                return;
+            }
+
             if (obj.phase != InputActionPhase.Performed) return;
 
             GetComponentsInChildren<TabGroup>().ToList().ForEach(x =>
@@ -132,6 +248,9 @@ namespace MarTools
         }
         private void Navigate(InputAction.CallbackContext obj)
         {
+            if (blockNavigation)
+                return;
+            
             SetNavigationType(NavigationType.Axis);
 
             if (navigationComboCoroutine != null)
@@ -139,10 +258,24 @@ namespace MarTools
                 StopCoroutine(navigationComboCoroutine);
                 navigationComboCoroutine = null;
             }
-
+            
             if (obj.phase == InputActionPhase.Performed)
             {
+                if (_handover)
+                {
+                    OnNavigateHandover.Invoke(obj);
+                    return;
+                }
+
                 navigationComboCoroutine = StartCoroutine(NavigationCombo(obj.action));
+            }
+            else if (obj.phase == InputActionPhase.Canceled)
+            {
+                if(_handover)
+                {
+                    OnNavigateHandover.Invoke(obj);
+                    return;
+                }
             }
         }
 
@@ -159,6 +292,7 @@ namespace MarTools
 
         IEnumerator NavigationCombo(InputAction action)
         {
+
             Navigate(action.ReadValue<Vector2>());
 
             float timeStep = 0.6f;
@@ -166,6 +300,9 @@ namespace MarTools
 
             while(true)
             {
+                if (blockNavigation)
+                    yield break;
+
                 if (elapsed > timeStep) 
                 {
                     elapsed = 0;
@@ -196,7 +333,7 @@ namespace MarTools
             {
                 Vector3 toTarget = x.transform.position - origin.transform.position;
                 float angle = Vector3.Angle(toTarget, realDirection);
-                float availableAngle = 80;
+                float availableAngle = (origin.limitHorizontalToSiblings && direction.x != 0 && direction.y == 0) ? 1f : 80f;
                 if (angle > angleCheck)
                 {
                     Debug.DrawLine(origin.transform.position, x.transform.position, Color.red, 1f);
@@ -206,17 +343,25 @@ namespace MarTools
                     Debug.DrawLine(origin.transform.position, x.transform.position, Color.yellow, 1f);
                 }
 
+
                 return angle <= availableAngle;
             });
 
             if(AllPotentialTargets.Count() > 0)
             {
-                float maxDistance = AllPotentialTargets.Max(x => Vector3.Distance(x.transform.position, origin.transform.position));
+                float maxDistance = AllPotentialTargets.Max(x => Vector3.SqrMagnitude(x.transform.position - origin.transform.position));
                 AllPotentialTargets = AllPotentialTargets.OrderBy(x =>
                 {
-                    float distance = Vector3.Distance(x.transform.position, origin.transform.position);
+                    float distance = Vector3.SqrMagnitude(x.transform.position - origin.transform.position);
                     float distanceNormalized = distance / maxDistance;
                     float angle = Vector3.Angle(x.transform.position - origin.transform.position, realDirection);
+
+                    if ((realDirection.x != 0 && x.captureAlongHeight && angle < 90) ||
+                        (realDirection.y != 0 && x.captureAlongWidth && angle < 90))
+                    {
+                        distanceNormalized = Vector3.SqrMagnitude(Vector3.Project(x.transform.position - origin.transform.position, realDirection)) / maxDistance;
+                        angle = 0;
+                    }
 
                     float costToReach = distanceNormalized + (angle/angleCheck)*0.2f;
                     return costToReach;
@@ -242,7 +387,19 @@ namespace MarTools
 
         private void Submit(InputAction.CallbackContext obj)
         {
-            if(obj.phase == InputActionPhase.Started)
+            if (blockNavigation)
+                return;
+
+            if (_handover)
+            {
+                if (obj.phase != InputActionPhase.Performed && obj.phase != InputActionPhase.Canceled)
+                    return;
+
+                OnSubmitHandover.Invoke(obj);
+                return;
+            }
+
+            if (obj.phase == InputActionPhase.Started)
             {
                 SubmitStart(obj);
             }
@@ -266,7 +423,11 @@ namespace MarTools
                 if (obj.control.device == Mouse.current && MouseHoveredButtons.Count == 0) return;
 
                 selected.Submit();
-                OnSubmit.Invoke();
+
+                if (selected.locked)
+                    OnSubmitLocked.Invoke();
+                else
+                    OnSubmit.Invoke();
             }
         }
 
@@ -277,17 +438,19 @@ namespace MarTools
 
         void Update()
         {
+            if (_handover)
+                return;
+
             if(selected && !selected.gameObject.activeInHierarchy)
             {
                 DeselectButton(selected);
             }
 
-            bool canMouseBeUsed = true;
+            bool canMouseBeUsed = false; // TODO(Tautvydas): Fix and re-enable, right now it just causes more issues
 
-            PlayerInput input = PlayerInput.GetPlayerByIndex(playerIndex);
-            if(input)
+            if(playerInput)
             {
-                if (input.currentControlScheme != "Keyboard&Mouse") canMouseBeUsed = false;
+                if (playerInput.currentControlScheme != "Keyboard&Mouse") canMouseBeUsed = false;
             }
 
             MouseHoveredButtons.Clear();
@@ -349,7 +512,12 @@ namespace MarTools
                 {
                     lastNotNull = button;
                 }
-                OnSelect.Invoke();
+
+                if (button.locked)
+                    OnSelectLocked.Invoke();
+                else
+                    OnSelect.Invoke();
+                
                 selected.Select();
             }
         }
@@ -404,15 +572,25 @@ namespace MarTools
         {
             DisableInput();
 
-            PlayerInput player = PlayerInput.GetPlayerByIndex(playerIndex);
             // If player exists get asset held by the player, if not, use the action asset 
-            InputActionAsset asset = player ? player.actions : submitAction.asset;
+            InputActionAsset asset;
+            if(playerInput)
+            {
+                asset = playerInput.actions;
+            }
+            else
+            {
+                asset = Instantiate(submitAction.asset);
+                asset.devices = InputSystem.devices;
+            }
 
             var actionMap = asset.FindActionMap("UI");
             actionMap.actionTriggered += ActionTriggered;
             actionMap.Enable();
 
             inputCleanupAction = () => actionMap.actionTriggered -= ActionTriggered;
+
+            EventDictionary.Clear();
 
             foreach (var item in actionMap.actions)
             {
@@ -421,10 +599,14 @@ namespace MarTools
 
                 }
             }
+
+            SubscribeDefaultInputs();
         }
         private void DisableInput()
         {
             inputCleanupAction?.Invoke();
+
+            UnsubscribeDefaultInputs();
         }
 
         private void ActionTriggered(InputAction.CallbackContext obj)
@@ -467,6 +649,47 @@ namespace MarTools
 
             }
         }
+
+        public void UnsubscribeInput(InputActionReference r, UnityAction<InputAction.CallbackContext> action)
+        {
+            if (r == null) return;
+
+            if (EventDictionary.TryGetValue(r.action.name, out var context))
+            {
+                context.RemoveListener(action);
+            }
+            else
+            {
+                string all = "";
+                EventDictionary.Keys.ToList().ForEach(x => all += $"{x}\n");
+
+                Debug.LogWarning($"The UI action map does not contain {r.name} [{r.action.name}] from {r.action.actionMap} It contains these actions:\n");
+
+            }
+        }
+
+        public void EnableHandover()
+        {
+            _handover = true;
+        }
+
+        public void DisableHandover()
+        {
+            _handover = false;
+            OnSubmitHandover = null;
+            OnNavigateHandover = null;
+            OnNextTabHandover = null;
+            OnPreviousTabHandover = null;
+        }
+
+        public void BlockNavigation(bool state)
+        {
+            blockNavigation = state;
+            if (blockNavigation && navigationComboCoroutine != null)
+            {
+                StopAllCoroutines();
+                navigationComboCoroutine = null;
+            }
+        }
     }
-    
 }

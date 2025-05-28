@@ -73,6 +73,8 @@ namespace MarTools
         {
             base.OnInspectorGUI();
 
+            if (!script.mapping) return;
+
             var mappings = script.mapping.Mappings;
 
             int currentIndex = mappings.FindIndex(x => x.actionPath == script.displayedAction);
@@ -83,6 +85,11 @@ namespace MarTools
 
             script.displayedAction = mappings[newIndex].actionPath;
 
+            if(currentIndex != newIndex)
+            {
+                EditorUtility.SetDirty(script);
+            }
+
             //foreach (var obj in script.mapping.Mappings)
             //{
             //    foreach (var item in obj.PromptSprites)
@@ -91,7 +98,7 @@ namespace MarTools
             //    }
             //}
 
-            if(Application.isPlaying)
+            if(Application.isPlaying && script.playerInput)
             {
                 GUILayout.Label($"Current layout: {script.playerInput.currentControlScheme}");
             }

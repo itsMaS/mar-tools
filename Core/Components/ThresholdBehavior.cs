@@ -16,7 +16,7 @@ namespace MarTools
         {
             bool newValue = value > threshold;
 
-            if(newValue != thresholdMet)
+            if (newValue != thresholdMet)
             {
                 thresholdMet = newValue;
                 if (thresholdMet)
@@ -28,6 +28,7 @@ namespace MarTools
                     OnValueOff.Invoke();
                 }
                 OnValueChanged.Invoke(true);
+
             }
         }
     }

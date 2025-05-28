@@ -11,6 +11,8 @@ namespace MarTools
             _instance = null;
         }
 
+        private bool initialized = false;
+
         public static T Instance
         {
             get
@@ -20,7 +22,7 @@ namespace MarTools
                     _instance = FindFirstObjectByType<T>(FindObjectsInactive.Include);
                     if(_instance)
                     {
-                        _instance.Initialize();
+                        _instance.TryInitialize();
                     }
                 }
                 if(!_instance)
@@ -34,19 +36,30 @@ namespace MarTools
 
         private void Awake()
         {
-            if(_instance && _instance != this)
+            if (_instance && _instance != this)
             {
                 Destroy(gameObject);
             }
             else
             {
-                _instance = this as T;
+                TryInitialize();
+            }
+        }
+
+        public void TryInitialize()
+        {
+            if(!initialized)
+            {
                 Initialize();
             }
         }
 
         protected virtual void Initialize()
         {
+            _instance = this as T;
+            //Debug.Log($"Initialize {_instance.GetType()}");
+
+            initialized = true;
         }
 
         private static T _instance;

@@ -11,6 +11,8 @@ namespace MarTools
         public UnityEvent OnSelected;
         public UnityEvent OnDeselected;
         public UnityEvent OnSubmit;
+        public UnityEvent OnMasked;
+        public UnityEvent OnUnmasked;
 
         public UIManager manager
         {
@@ -101,8 +103,12 @@ namespace MarTools
 
         [Tooltip("Whether this element can only be selected by a mouse")]
         public bool mouseOnly = false;
+        public bool locked = false;
         public InputActionReference alternativeSubmitAction;
         public bool selected => manager.selected == this;
+        public bool limitHorizontalToSiblings = false;
+        public bool captureAlongWidth = false;
+        public bool captureAlongHeight = false;
 
         private void Start()
         {
@@ -162,6 +168,23 @@ namespace MarTools
         private void OnDisable()
         {
             manager.Unsubscribe(this);
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (captureAlongWidth)
+            {
+                Gizmos.color = Color.yellow;
+                GizmosUtilities.DrawArrow(transform.position, transform.position + Vector3.right * rectTr.sizeDelta.x, 20.0f);
+                GizmosUtilities.DrawArrow(transform.position, transform.position + Vector3.left * rectTr.sizeDelta.x, 20.0f);
+            }
+
+            if (captureAlongHeight)
+            {
+                Gizmos.color = Color.yellow;
+                GizmosUtilities.DrawArrow(transform.position, transform.position + Vector3.up * rectTr.sizeDelta.y, 20.0f);
+                GizmosUtilities.DrawArrow(transform.position, transform.position + Vector3.down * rectTr.sizeDelta.y, 20.0f);
+            }
         }
     }
 }
