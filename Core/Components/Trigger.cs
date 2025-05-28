@@ -8,6 +8,7 @@ namespace MarTools
     using UnityEngine;
     using UnityEngine.Events;
     using System;
+    using System.Linq;
 
     public class Trigger : MonoBehaviour
     {
@@ -20,8 +21,16 @@ namespace MarTools
             BoxCollider collider = triggerGO.AddComponent<BoxCollider>();
             collider.isTrigger = true;
 
+            if (Selection.activeGameObject)
+            {
+                triggerGO.transform.parent = Selection.activeGameObject.transform;
+            }
+
+
             Selection.activeGameObject = triggerGO;
             EditorGUIUtility.editingTextField = true;
+
+            trigger.checkFunction = new CompareTag() { tag = "Player" };
         }
 #endif
 
@@ -51,6 +60,9 @@ namespace MarTools
 
         private void OnTriggerEnter(Collider other)
         {
+            if (!enabled)
+                return;
+
             if (completed && dontTrackAfterCompletion) return;
 
             if (!CheckObject(other)) return;
@@ -59,7 +71,7 @@ namespace MarTools
             {
                 EnteredGameobjects.Add(other.gameObject);
 
-                if(!completed && countRequiredToComplete >= EnteredGameobjects.Count)
+                if(!completed && countRequiredToComplete <= EnteredGameobjects.Count)
                 {
                     Complete();
                 }
@@ -87,6 +99,9 @@ namespace MarTools
 
         private void OnTriggerExit(Collider other)
         {
+            if (!enabled)
+                return;
+
             if (completed && dontTrackAfterCompletion) return;
 
             if (dontTrackObjectExit) return;
@@ -164,6 +179,22 @@ namespace MarTools
 
                 // Draw a transparent solid sphere
                 Gizmos.DrawSphere(sphereCenter, sphereRadius);
+            }
+        }
+
+        public void Disable()
+        {
+            foreach (var item in GetComponentsInChildren<Collider>().Where(x => x.isTrigger))
+            {
+                item.enabled = false;
+            }
+        }
+
+        public void Enable()
+        {
+            foreach (var item in GetComponentsInChildren<Collider>().Where(x => x.isTrigger))
+            {
+                item.enabled = true;
             }
         }
     }
